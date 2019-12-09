@@ -1,0 +1,25 @@
+Package: rectr
+Title: Reproducible Extraction of Cross-lingual Topics Using R.
+Version: 0.0.1
+Authors@R: 
+    person(given = "Chung-hong",
+           family = "Chan",
+           role = c("aut", "cre"),
+           email = "chainsawtiney@gmail.com",
+           comment = c(ORCID = "0000-0002-6232-7530"))
+Description: This experimental package extracts reproducible cross-lingual topics from a multilingual text corpus without using automatic translation.
+License: LGPL (>= 2.1)
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    quanteda,
+    dplyr,
+    readr,
+    purrr,
+    stringr,
+    flexmix,
+    furrr,
+    future,
+    RSpectra,
+    magrittr
+RoxygenNote: 6.1.1
