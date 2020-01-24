@@ -65,7 +65,7 @@ create_corpus <- function(text_content, lang) {
 #' @export
 dfm_boe <- function(corpus, emb, .progress = TRUE) {
     future:::plan(future::multiprocess)
-    furrr::future_map2_dfr(corpus$documents$texts, corpus$documents$lang, .gen_doc_embedding, emb = emb, .progress = .progress) %>% as.matrix -> real_dfm
+    furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress) %>% as.matrix -> real_dfm
     res <- list(dfm = real_dfm, corpus = corpus)
     class(res) <- append(class(res), "rectr_dfm")
     return(res)
@@ -96,7 +96,7 @@ print.rectr_dfm <- function(rectr_dfm) {
     if (!is.null(seed)) {
         set.seed(seed)
     }
-    lang_vector <- corpus$documents$lang
+    lang_vector <- quanteda::docvars(corpus, "lang")
     i <- .check_lang_indep(lsa_res, lang_vector)
     max_d <- (k*2) + i
     x <- flexmix::flexmix(lsa_res[,i:max_d]~1, k = k, model = flexmix::FLXMCmvnorm(diagonal = FALSE))
@@ -145,3 +145,4 @@ print.rectr_model <- function(rectr_model) {
     cat(paste0(rectr_model$k, "-topic rectr model trained with a "))
     print(rectr_model$dfm)
 }
+
