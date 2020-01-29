@@ -1,6 +1,6 @@
 Package: rectr
 Title: Reproducible Extraction of Cross-lingual Topics Using R.
-Version: 0.0.1
+Version: 0.0.3
 Authors@R: 
     person(given = "Chung-hong",
            family = "Chan",
@@ -12,7 +12,7 @@ License: LGPL (>= 2.1)
 Encoding: UTF-8
 LazyData: true
 Imports: 
-    quanteda,
+    quanteda (>= 1.9.9007),
     dplyr,
     readr,
     purrr,

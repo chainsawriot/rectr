@@ -1,0 +1,74 @@
+---
+title: Reproducible Extraction of Cross-lingual Topics using R.
+output: github_document
+---
+
+# rectr
+
+
+The rectr package contains an example dataset "wiki" with English and German articles from Wikipedia about programming languages and locations in Germany.
+
+```{r}
+require(rectr)
+require(tibble)
+require(dplyr)
+wiki
+```
+
+## Download word embeddings
+
+Download and preprocess fastText word embeddings from Facebook. Make sure you are using a Unix machine, e.g. Linux or Mac, have at least 5G of disk space and a reasonably amount of RAM. It took around 20 minutes on my machine.
+
+```{r, eval = FALSE}
+get_ft("en")
+get_ft("de")
+```
+
+Read the downloaded word embeddings.
+
+```{r}
+emb <- read_ft(c("en", "de"))
+```
+
+## Create corpus
+
+Create a multilingual corpus
+
+```{r}
+wiki_corpus <- create_corpus(wiki$content, wiki$lang)
+```
+
+## Create bag-of-embeddings dfm
+
+Create a multilingual dfm
+
+```{r}
+wiki_dfm <- dfm_boe(wiki_corpus, emb)
+wiki_dfm
+```
+
+## Filter dfm
+
+Filter the dfm for language differences
+
+```{r}
+wiki_dfm_filtered <- filter_dfm(wiki_dfm, wiki_corpus, k = 2)
+wiki_dfm_filtered
+```
+
+## Estimate GMM
+
+Estimate a Guassian Mixture Model
+
+```{r}
+wiki_gmm <- calculate_gmm(wiki_dfm_filtered, seed = 46709394)
+wiki_gmm
+```
+
+The document-topic matrix is available in `wiki_gmm$theta`.
+
+Rank the articles according to the theta1.
+
+```{r}
+wiki %>% mutate(theta1 = wiki_gmm$theta[,1]) %>% arrange(theta1) %>% select(title, lang, theta1) %>% print(n = 400)
+```
