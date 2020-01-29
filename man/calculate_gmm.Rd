@@ -4,12 +4,10 @@
 \alias{calculate_gmm}
 \title{Fit a Guassian Mixture Model from a document-feature matrix}
 \usage{
-calculate_gmm(input_dfm, k = 5, seed = NULL)
+calculate_gmm(input_dfm, seed = NULL)
 }
 \arguments{
 \item{input_dfm}{a rectr_dfm object}
-
-\item{k}{integer, number of topics}
 
 \item{seed}{integer, to set the random seed for reproducibility. When leave as NULL, no random seed is set.}
 }

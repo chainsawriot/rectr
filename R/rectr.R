@@ -63,7 +63,7 @@ create_corpus <- function(text_content, lang) {
 #' @return a rectr_dfm object
 #' @importFrom magrittr %>%
 #' @export
-dfm_boe <- function(corpus, emb, .progress = TRUE) {
+transform_dfm_boe <- function(corpus, emb, .progress = TRUE) {
     future:::plan(future::multiprocess)
     furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress) %>% as.matrix -> real_dfm
     res <- list(dfm = real_dfm, corpus = corpus, k = NULL, filtered = FALSE)

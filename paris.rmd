@@ -1,0 +1,70 @@
+---
+title: Reproducing the analyses in the paper
+output: github_document
+---
+
+
+Due to copyright reasons, we cannot bundle the full text of New York Times, Süddeutsche Zeitung and Le Fegaro news articles.
+
+However, a processed version of the corpus and dfm is available. The data was generated using the following code.
+
+```{r, eval = FALSE}
+require(rectr)
+require(tibble)
+require(dplyr)
+require(quanteda)
+paris <- readRDS("~/dev/infocrap/final_data_endefr.RDS") %>% mutate(content = paste(lede, content), lang = tolower(lang), id = row_number()) %>% select(content, lang, pubdate, headline, id)
+```
+
+```{r, eval = FALSE}
+get_ft("fr")
+get_ft("de")
+get_ft("en")
+```
+
+```{r, eval = FALSE}
+emb <- read_ft(c("fr", "de", "en"))
+paris_corpus <- create_corpus(paris$content, paris$lang)
+paris_dfm <- transform_dfm_boe(paris_corpus, emb)
+docvars(paris_corpus, "headline") <- paris$headline
+docvars(paris_corpus, "pubdate") <- paris$pubdate
+docvars(paris_corpus, "id") <- paris$id
+
+## Delete all text content, sorry, researchers!
+paris_corpus[1:3391] <- NA
+usethis::use_data(paris_corpus, overwrite = TRUE)
+usethis::use_data(paris_dfm, overwrite = TRUE)
+```
+
+Reproduce the analysis in the paper.
+
+```{r}
+require(rectr)
+require(tidyverse)
+require(quanteda)
+paris_corpus
+```
+
+```{r}
+paris_dfm
+```
+
+```{r}
+emb <- read_ft(c("fr", "de", "en"))
+paris_dfm_filtered <- filter_dfm(paris_dfm, paris_corpus, k = 5)
+paris_dfm_filtered
+```
+
+```{r}
+paris_gmm <- calculate_gmm(paris_dfm_filtered, seed = 42)
+paris_gmm
+```
+
+```{r}
+get_sample <- function(i, paris_corpus, theta, threshold = 0.8) {
+    tibble(hl = docvars(paris_corpus, "headline"), lang = docvars(paris_corpus, "lang"), prob = theta[,i]) %>% group_by(lang) %>% filter(prob > threshold) %>% sample_n(size = 5, weight = prob, replace = FALSE) %>% select(hl, lang, prob) %>% ungroup %>% arrange(lang, prob) %>% mutate(topic = i)
+}
+
+set.seed(421)
+map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm$theta) %>% print(n = 100)
+```

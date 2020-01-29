@@ -43,7 +43,7 @@ wiki_corpus <- create_corpus(wiki$content, wiki$lang)
 Create a multilingual dfm
 
 ```{r}
-wiki_dfm <- dfm_boe(wiki_corpus, emb)
+wiki_dfm <- transform_dfm_boe(wiki_corpus, emb)
 wiki_dfm
 ```
 
