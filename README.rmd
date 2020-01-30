@@ -6,7 +6,7 @@ output: github_document
 # rectr
 
 
-The rectr package contains an example dataset "wiki" with English and German articles from Wikipedia about programming languages and locations in Germany.
+The rectr package contains an example dataset "wiki" with English and German articles from Wikipedia about programming languages and locations in Germany. This package uses the corpus data structure from the `quanteda` package.
 
 ```{r}
 require(rectr)
@@ -71,4 +71,10 @@ Rank the articles according to the theta1.
 
 ```{r}
 wiki %>% mutate(theta1 = wiki_gmm$theta[,1]) %>% arrange(theta1) %>% select(title, lang, theta1) %>% print(n = 400)
+```
+
+SessionInfo
+
+```{r}
+sessionInfo()
 ```

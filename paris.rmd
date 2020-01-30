@@ -4,7 +4,7 @@ output: github_document
 ---
 
 
-Due to copyright reasons, we cannot bundle the full text of New York Times, Süddeutsche Zeitung and Le Fegaro news articles.
+Due to copyright reasons, we cannot bundle the full text of New York Times, Süddeutsche Zeitung and Le Fegaro news articles in this package.
 
 However, a processed version of the corpus and dfm is available. The data was generated using the following code.
 
@@ -36,6 +36,8 @@ usethis::use_data(paris_corpus, overwrite = TRUE)
 usethis::use_data(paris_dfm, overwrite = TRUE)
 ```
 
+# Actual reproduction
+
 Reproduce the analysis in the paper.
 
 ```{r}
@@ -60,11 +62,98 @@ paris_gmm <- calculate_gmm(paris_dfm_filtered, seed = 42)
 paris_gmm
 ```
 
+## Appendix I
+
 ```{r}
-get_sample <- function(i, paris_corpus, theta, threshold = 0.8) {
-    tibble(hl = docvars(paris_corpus, "headline"), lang = docvars(paris_corpus, "lang"), prob = theta[,i]) %>% group_by(lang) %>% filter(prob > threshold) %>% sample_n(size = 5, weight = prob, replace = FALSE) %>% select(hl, lang, prob) %>% ungroup %>% arrange(lang, prob) %>% mutate(topic = i)
+get_sample <- function(i, paris_corpus, theta, threshold = 0.8, replace = FALSE) {
+    tibble(hl = docvars(paris_corpus, "headline"), lang = docvars(paris_corpus, "lang"), prob = theta[,i]) %>% group_by(lang) %>% filter(prob > threshold) %>% sample_n(size = 5, weight = prob, replace = replace) %>% select(hl, lang, prob) %>% ungroup %>% arrange(lang, prob) %>% mutate(topic = i)
 }
 
-set.seed(421)
+set.seed(42)
 map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm$theta) %>% print(n = 100)
+```
+
+# tSTM
+
+Again, due to copyright reasons, we cannot provide the full text. However, the DTM (in STM) format is available. It was created using this code.
+
+```{r, eval = FALSE}
+require(tidyverse)
+require(googleLanguageR)
+require(stm)
+require(quanteda)
+
+textdata <- readRDS("~/dev/infocrap/final_data_endefr.RDS") %>% mutate(content = paste(lede, content), lang = tolower(lang), id = row_number()) %>% select(content, lang, pubdate, headline, id)
+
+## Please insert your google token here. Uncomment if needed.
+## gl_auth("____.json")
+
+
+textdata %>% filter(lang == "fr") %>% pull(content) -> FR_CONTENT
+textdata %>% filter(lang == "de") %>% pull(content) -> DE_CONTENT
+textdata %>% filter(lang == "en") %>% pull(content) -> EN_CONTENT
+FR_DFM <- dfm(FR_CONTENT, remove = stopwords("fr"), remove_numbers = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = 2)
+
+FR_terms <- colnames(FR_DFM)
+
+
+## Uncomment the following 3 lines if you want to do the google translation
+
+## FR_trans_terms <- gl_translate(FR_terms, source = "fr")
+## saveRDS(FR_trans_terms, "~/dev/infocrap/FR_trans_terms.RDS")
+## saveRDS(FR_terms, "~/dev/infocrap/FR_terms.RDS")
+
+
+DE_DFM <- dfm(DE_CONTENT, remove = stopwords("de"), , remove_numbers = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = 2)
+
+DE_terms <- colnames(DE_DFM)
+
+## Uncomment the following 3 lines if you want to do the google translation
+
+## DE_trans_terms <- gl_translate(DE_terms, source = "de")
+## saveRDS(DE_trans_terms, "~/dev/infocrap/DE_trans_terms.RDS")
+## saveRDS(DE_terms, "~/dev/infocrap/DE_terms.RDS")
+
+DE_trans_terms <- readRDS("~/dev/infocrap/DE_trans_terms.RDS")
+FR_trans_terms <- readRDS("~/dev/infocrap/FR_trans_terms.RDS")
+
+
+FR_tokens <- tokens(FR_CONTENT, remove_numbers = TRUE, remove_punct = TRUE)
+
+DE_tokens <- tokens(DE_CONTENT, remove_numbers = TRUE, remove_punct = TRUE)
+
+
+recon <- function(token_obj, trans_terms) {
+    tibble(text = tolower(token_obj)) %>% left_join(trans_terms, by = 'text') %>% filter(!is.na(translatedText)) %>% pull(translatedText) %>% paste(collapse = " ")
+}
+
+FR_recon_en_text <- map_chr(FR_tokens, recon, trans_terms = FR_trans_terms)
+
+DE_recon_en_text <- map_chr(DE_tokens, recon, trans_terms = DE_trans_terms)
+
+recon_complete_text <- c(FR_recon_en_text, EN_CONTENT, DE_recon_en_text)
+textdata$translated_text <- recon_complete_text
+
+min_docfreq <- (nrow(textdata) * 0.005) %>% ceiling
+max_docfreq <- (nrow(textdata) * 0.99) %>% ceiling
+
+dfm(textdata$translated_text, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = min_docfreq, max_docfreq = max_docfreq) %>% convert(to = 'stm') -> paris_translated_dfm
+usethis::use_data(paris_translated_dfm, overwrite = TRUE)
+```
+
+```{r}
+require(stm)
+require(tidyverse)
+require(googleLanguageR)
+require(quanteda)
+
+set.seed(42)
+translated_stm  <- stm(translated_dfm$documents, translated_dfm$vocab, K = 5)
+set.seed(42)
+### Many duplicated
+map_dfr(1:5, get_sample, paris_corpus, theta = translated_stm$theta, replace = TRUE) %>% print(n = 100)
+```
+
+```{r}
+sessionInfo()
 ```

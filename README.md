@@ -92,22 +92,24 @@ wiki_dfm <- transform_dfm_boe(wiki_corpus, emb)
      Progress: ─────                                                            100%
      Progress: ────────                                                         100%
      Progress: ───────────                                                      100%
-     Progress: ──────────────                                                   100%
-     Progress: ─────────────────                                                100%
-     Progress: ─────────────────────                                            100%
-     Progress: ───────────────────────                                          100%
+     Progress: ─────────────                                                    100%
+     Progress: ────────────────                                                 100%
+     Progress: ───────────────────                                              100%
+     Progress: ──────────────────────                                           100%
+     Progress: ────────────────────────                                         100%
      Progress: ───────────────────────────                                      100%
      Progress: ──────────────────────────────                                   100%
      Progress: ─────────────────────────────────                                100%
      Progress: ────────────────────────────────────                             100%
      Progress: ───────────────────────────────────────                          100%
      Progress: ──────────────────────────────────────────                       100%
-     Progress: ─────────────────────────────────────────────                    100%
-     Progress: ────────────────────────────────────────────────                 100%
-     Progress: ───────────────────────────────────────────────────              100%
-     Progress: ─────────────────────────────────────────────────────            100%
-     Progress: ────────────────────────────────────────────────────────         100%
-     Progress: ───────────────────────────────────────────────────────────      100%
+     Progress: ────────────────────────────────────────────                     100%
+     Progress: ───────────────────────────────────────────────                  100%
+     Progress: ──────────────────────────────────────────────────               100%
+     Progress: ────────────────────────────────────────────────────             100%
+     Progress: ──────────────────────────────────────────────────────           100%
+     Progress: ─────────────────────────────────────────────────────────        100%
+     Progress: ────────────────────────────────────────────────────────────     100%
      Progress: ──────────────────────────────────────────────────────────────   100%
      Progress: ───────────────────────────────────────────────────────────────  100%
      Progress: ──────────────────────────────────────────────────────────────── 100%
@@ -497,3 +499,47 @@ wiki %>% mutate(theta1 = wiki_gmm$theta[,1]) %>% arrange(theta1) %>% select(titl
     ## 340 Holstentor                                                   en    1.00e+  0
     ## 341 Aachener Domschatzkammer                                     de    1.00e+  0
     ## 342 Stralsund                                                    en    1.00e+  0
+
+SessionInfo
+
+``` r
+sessionInfo()
+```
+
+    ## R version 3.6.2 (2019-12-12)
+    ## Platform: x86_64-pc-linux-gnu (64-bit)
+    ## Running under: Ubuntu 18.04.3 LTS
+    ## 
+    ## Matrix products: default
+    ## BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
+    ## LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+    ## 
+    ## locale:
+    ##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+    ##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+    ##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+    ##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+    ##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+    ## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## other attached packages:
+    ## [1] dplyr_0.8.3  tibble_2.1.3 rectr_0.0.5 
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] modeltools_0.2-22  tidyselect_1.0.0   xfun_0.12          purrr_0.3.3       
+    ##  [5] listenv_0.8.0      lattice_0.20-38    colorspace_1.4-1   vctrs_0.2.2       
+    ##  [9] htmltools_0.4.0    stats4_3.6.2       yaml_2.2.0         utf8_1.1.4        
+    ## [13] rlang_0.4.4        pillar_1.4.3       glue_1.3.1         lifecycle_0.1.0   
+    ## [17] stringr_1.4.0      munsell_0.5.0      gtable_0.3.0       mvtnorm_1.0-11    
+    ## [21] future_1.16.0      codetools_0.2-16   evaluate_0.14      knitr_1.26        
+    ## [25] flexmix_2.3-15     parallel_3.6.2     fansi_0.4.1        furrr_0.1.0       
+    ## [29] Rcpp_1.0.3         spacyr_1.2         scales_1.1.0       RcppParallel_4.4.4
+    ## [33] RSpectra_0.16-0    fastmatch_1.1-0    stopwords_1.0      ggplot2_3.2.1     
+    ## [37] digest_0.6.23      stringi_1.4.5      quanteda_1.9.9009  grid_3.6.2        
+    ## [41] cli_2.0.1          tools_3.6.2        magrittr_1.5       lazyeval_0.2.2    
+    ## [45] crayon_1.3.4       pkgconfig_2.0.3    Matrix_1.2-18      data.table_1.12.8 
+    ## [49] assertthat_0.2.1   rmarkdown_2.0      R6_2.4.1           globals_0.12.5    
+    ## [53] nnet_7.3-12        compiler_3.6.2
