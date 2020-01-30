@@ -1,0 +1,91 @@
+---
+title: Keyword analysis
+output: github_document
+---
+
+
+Due to copyright reasons, we cannot bundle the full text of New York Times, Süddeutsche Zeitung and Le Fegaro news articles in this package.
+
+The first few rows of the data look like so.
+
+```{r, eval = FALSE}
+require(rectr)
+require(tibble)
+require(dplyr)
+require(quanteda)
+readRDS("~/dev/infocrap/final_data_endefr.RDS")
+```
+
+    ## # A tibble: 3,391 x 10
+    ##    path  id    pubdate headline lede  body  lang  content    nt tokenized_conte…
+    ##    <chr> <chr> <chr>   <chr>    <chr> <chr> <chr> <chr>   <int> <list>          
+    ##  1 ./pa… arti… 2 Nove… "Maladi… "Ave… "Dan… FR    "Avec …  1026 <chr [1,138]>   
+    ##  2 ./pa… arti… 2 Nove… "« Cela… "LE … "Pat… FR    "LE FI…   734 <chr [820]>     
+    ##  3 ./pa… arti… 2 Nove… "L'Iran… "L'a… "de … FR    "L'anc…   984 <chr [1,081]>   
+    ##  4 ./pa… arti… 2 Nove… "Matthi… "Le … "Mat… FR    "Le pr…  1077 <chr [1,213]>   
+    ##  5 ./pa… arti… 2 Nove… "Les 31… "Lan… "EUR… FR    "Lancé…  1012 <chr [1,115]>   
+    ##  6 ./pa… arti… 2 Nove… "Genera… "Apr… "À l… FR    "Après…   800 <chr [874]>     
+    ##  7 ./pa… arti… 2 Nove… "La dis… "Seu… "Les… FR    "Seul …  1171 <chr [1,318]>   
+    ##  8 ./pa… arti… 2 Nove… "Les ca… "Ils… "Ce … FR    "Ils d…   552 <chr [612]>     
+    ##  9 ./pa… arti… 2 Nove… "Le pré… "FRA… "À l… FR    "FRANÇ…   506 <chr [589]>     
+    ## 10 ./pa… arti… 2 Nove… "La nui… "  Ç… "Au … FR    "  ÇA …   516 <chr [552]>     
+    ## # … with 3,381 more rows
+
+
+Unfortunately, one must have the original data to reproduce this part of the analysis. Also, the code is not optimized. Thus, don't run this on your machine.
+
+# Actual reproduction
+
+Reproduce the analyses in the paper.
+
+```{r}
+require(rectr)
+require(tidyverse)
+require(quanteda)
+paris_corpus
+```
+
+```{r}
+paris_dfm
+```
+
+```{r}
+emb <- read_ft(c("fr", "de", "en"))
+paris_dfm_filtered <- filter_dfm(paris_dfm, paris_corpus, k = 5)
+paris_dfm_filtered
+```
+
+```{r}
+paris_gmm <- calculate_gmm(paris_dfm_filtered, seed = 42)
+paris_gmm
+```
+
+```{r, warning = FALSE}
+textdata <- readRDS("~/dev/infocrap/final_data_endefr.RDS")
+max_docfreq <- (nrow(textdata) * 0.99) %>% ceiling
+
+dfm(textdata$content, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = 3, max_docfreq = max_docfreq) %>% dfm_tfidf -> dfm_tfidf
+
+eng_dfm <- dfm_tfidf[textdata$lang == 'EN',]
+
+keywords <- function(topic = 1, thetax, eng_dfm, textdata, lang = "EN") {
+    print(topic)
+    dfm_col <- ncol(eng_dfm)
+    cor_t1 <- map_dbl(1:dfm_col, ~ cor(as.vector(eng_dfm[,.]), thetax[textdata$lang == lang,topic]))
+    tibble(token = colnames(eng_dfm), cor = cor_t1, topic = topic)
+}
+
+keywords_matrix <- map_dfr(1:5, keywords, thetax = paris_gmm$theta, eng_dfm = eng_dfm, textdata = textdata)
+
+keywords_matrix %>% group_by(topic) %>% top_n(n = 10, wt = cor) %>% summarise(desc = paste(token, collapse = ", ")) -> rectr_keywords
+```
+
+```{r}
+rectr_keywords
+```
+
+
+```{r}
+sessionInfo()
+```
+
