@@ -1,8 +1,8 @@
 Reproducible Extraction of Cross-lingual Topics using R.
 ================
 
-rectr
-=====
+rectr <img src="man/figures/rectr_logo.png" align="right" height="200" />
+=========================================================================
 
 The rectr package contains an example dataset "wiki" with English and German articles from Wikipedia about programming languages and locations in Germany. This package uses the corpus data structure from the `quanteda` package.
 
@@ -92,23 +92,26 @@ wiki_dfm <- transform_dfm_boe(wiki_corpus, emb)
      Progress: ─────                                                            100%
      Progress: ────────                                                         100%
      Progress: ───────────                                                      100%
-     Progress: ──────────────                                                   100%
-     Progress: ─────────────────                                                100%
-     Progress: ────────────────────                                             100%
-     Progress: ───────────────────────                                          100%
+     Progress: ─────────────                                                    100%
+     Progress: ────────────────                                                 100%
+     Progress: ───────────────────                                              100%
+     Progress: ─────────────────────                                            100%
+     Progress: ────────────────────────                                         100%
      Progress: ──────────────────────────                                       100%
      Progress: ─────────────────────────────                                    100%
-     Progress: ─────────────────────────────────                                100%
-     Progress: ───────────────────────────────────                              100%
+     Progress: ───────────────────────────────                                  100%
+     Progress: ──────────────────────────────────                               100%
+     Progress: ─────────────────────────────────────                            100%
      Progress: ───────────────────────────────────────                          100%
      Progress: ──────────────────────────────────────────                       100%
      Progress: ─────────────────────────────────────────────                    100%
      Progress: ────────────────────────────────────────────────                 100%
-     Progress: ───────────────────────────────────────────────────              100%
+     Progress: ──────────────────────────────────────────────────               100%
      Progress: ─────────────────────────────────────────────────────            100%
-     Progress: ───────────────────────────────────────────────────────          100%
+     Progress: ────────────────────────────────────────────────────────         100%
      Progress: ──────────────────────────────────────────────────────────       100%
      Progress: ─────────────────────────────────────────────────────────────    100%
+     Progress: ───────────────────────────────────────────────────────────────  100%
      Progress: ───────────────────────────────────────────────────────────────  100%
      Progress: ──────────────────────────────────────────────────────────────── 100%
 
@@ -506,7 +509,7 @@ sessionInfo()
 
     ## R version 3.6.2 (2019-12-12)
     ## Platform: x86_64-pc-linux-gnu (64-bit)
-    ## Running under: Ubuntu 18.04.3 LTS
+    ## Running under: Ubuntu 18.04.4 LTS
     ## 
     ## Matrix products: default
     ## BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
@@ -529,7 +532,7 @@ sessionInfo()
     ## loaded via a namespace (and not attached):
     ##  [1] modeltools_0.2-22  tidyselect_1.0.0   xfun_0.12          purrr_0.3.3       
     ##  [5] listenv_0.8.0      lattice_0.20-38    colorspace_1.4-1   vctrs_0.2.2       
-    ##  [9] htmltools_0.4.0    stats4_3.6.2       yaml_2.2.0         utf8_1.1.4        
+    ##  [9] htmltools_0.4.0    stats4_3.6.2       yaml_2.2.1         utf8_1.1.4        
     ## [13] rlang_0.4.4        pillar_1.4.3       glue_1.3.1         lifecycle_0.1.0   
     ## [17] stringr_1.4.0      munsell_0.5.0      gtable_0.3.0       mvtnorm_1.0-11    
     ## [21] future_1.16.0      codetools_0.2-16   evaluate_0.14      knitr_1.26        

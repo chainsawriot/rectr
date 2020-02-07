@@ -3,8 +3,7 @@ title: Reproducible Extraction of Cross-lingual Topics using R.
 output: github_document
 ---
 
-# rectr
-
+# rectr <img src="man/figures/rectr_logo.png" align="right" height="200" />
 
 The rectr package contains an example dataset "wiki" with English and German articles from Wikipedia about programming languages and locations in Germany. This package uses the corpus data structure from the `quanteda` package.
 
