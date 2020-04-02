@@ -2,6 +2,29 @@
     download.file(paste0("https://dl.fbaipublicfiles.com/fasttext/vectors-aligned/wiki.", lang, ".align.vec"), destfile = paste0("wiki.", lang, ".align.vec"), method = 'curl')
 }
 
+.prepos <- function(filename, outputfilename, topwords = 200000) {
+    raw <- file(filename, open = "rt")
+    output_file <- file(outputfilename, open = "wt")
+    ## Skip first line
+    rubbish <- readLines(raw, n = 1)
+    linecounter <- 0
+    while(linecounter < topwords) {
+        line_content <- readLines(raw, n = 1)
+        if (identical(line_content, character(0))) {
+            ## EOF
+            break
+        }
+        ### One must convert line_content to utf-8 to maintain compatibility with grep on most systems.
+        if (!grepl("^[[:punct:][:digit:]]", enc2utf8(line_content))) {
+            writeLines(line_content, output_file)
+            linecounter <- linecounter + 1
+        }
+    }
+    close(raw)
+    close(output_file)
+}
+
+
 #' Download fastText word embeddings from the internet
 #'
 #' This function downloads fastText word embeddings from the internet, trims the embeddings and saves as an R serialized object.
@@ -11,11 +34,22 @@
 #' @export
 get_ft <- function(lang = "en", topwords = 200000) {
     .dl_fasttext(lang)
-    system(paste0("grep -v '^[[:punct:][:digit:]]' wiki.", lang ,".align.vec > wiki.", lang, ".clean.vec"))
-    readr::read_delim(paste0("wiki.", lang, ".clean.vec"), col_names = FALSE, skip = 1, delim = " ") %>% head(topwords) %>% saveRDS(paste0("wiki.", lang, ".trimmed.RDS"))
+    .prepos(paste0("wiki.", lang, ".align.vec"), paste0("wiki.", lang, ".clean.vec"), topwords = topwords)
+    readr::read_delim(paste0("wiki.", lang, ".clean.vec"), col_names = FALSE, delim = " ") %>% saveRDS(paste0("wiki.", lang, ".trimmed.RDS"))
     unlink(paste0("wiki.", lang, ".align.vec"))
     unlink(paste0("wiki.", lang, ".clean.vec"))
 }
+
+## Previous implementation that uses grep.
+## get_ft <- function(lang = "en", topwords = 200000) {
+##     .dl_fasttext(lang)
+##     system(paste0("grep -v '^[[:punct:][:digit:]]' wiki.", lang ,".align.vec > wiki.", lang, ".clean.vec"))
+##     readr::read_delim(paste0("wiki.", lang, ".clean.vec"), col_names = FALSE, skip = 1, delim = " ") %>% head(topwords) %>% saveRDS(paste0("wiki.", lang, ".trimmed.RDS"))
+##     unlink(paste0("wiki.", lang, ".align.vec"))
+##     unlink(paste0("wiki.", lang, ".clean.vec"))
+## }
+
+
 
 #' Reading word embeddings downloaded with get_ft()
 #'

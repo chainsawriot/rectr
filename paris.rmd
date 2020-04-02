@@ -17,7 +17,7 @@ require(rectr)
 require(tibble)
 require(dplyr)
 require(quanteda)
-readRDS("~/dev/infocrap/final_data_endefr.RDS")
+readRDS("final_data_endefr.RDS")
 ```
 
     ## # A tibble: 3,391 x 10
@@ -38,7 +38,7 @@ readRDS("~/dev/infocrap/final_data_endefr.RDS")
 The content column has the content of the news articles. For the rectr method, a processed version of the corpus and dfm is available in this package. The data was generated using the following code.
 
 ```{r, eval = FALSE}
-readRDS("~/dev/infocrap/final_data_endefr.RDS") %>% mutate(content = paste(lede, body), lang = tolower(lang), id = row_number()) %>% select(content, lang, pubdate, headline, id) -> paris
+readRDS("final_data_endefr.RDS") %>% mutate(content = paste(lede, body), lang = tolower(lang), id = row_number()) %>% select(content, lang, pubdate, headline, id) -> paris
 ```
 
 ```{r, eval = FALSE}
@@ -69,7 +69,7 @@ require(googleLanguageR)
 require(stm)
 require(quanteda)
 
-textdata <- readRDS("~/dev/infocrap/final_data_endefr.RDS") %>% mutate(content = paste(lede, body), lang = tolower(lang), id = row_number()) %>% select(content, lang, pubdate, headline, id)
+textdata <- readRDS("final_data_endefr.RDS") %>% mutate(content = paste(lede, body), lang = tolower(lang), id = row_number()) %>% select(content, lang, pubdate, headline, id)
 
 ## Please insert your google token here. Uncomment if needed.
 ## gl_auth("____.json")
