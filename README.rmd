@@ -5,6 +5,11 @@ output: github_document
 
 # rectr <img src="man/figures/rectr_logo.png" align="right" height="200" />
 
+Please cite this package as:
+
+*Chan, C.H., Zeng, J., Wessler, H., Jungblut, M., Welbers, K., Bajjalieh, J., van Atteveldt, W., & Althaus, S. (2020) Reproducible Extraction of Cross-lingual Topics. Paper accepted for oral presentation at the 70th International Communication Association Annual Conference (Top paper awards, ICA Computational Methods Interest Group)*
+
+
 The rectr package contains an example dataset "wiki" with English and German articles from Wikipedia about programming languages and locations in Germany. This package uses the corpus data structure from the `quanteda` package.
 
 ```{r}

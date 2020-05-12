@@ -61,7 +61,7 @@ paris_gmm
 ```
 
 ```{r, warning = FALSE}
-textdata <- readRDS("~/dev/infocrap/final_data_endefr.RDS")
+textdata <- readRDS("final_data_endefr.RDS")
 max_docfreq <- (nrow(textdata) * 0.99) %>% ceiling
 
 dfm(textdata$content, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = 3, max_docfreq = max_docfreq) %>% dfm_tfidf -> dfm_tfidf
