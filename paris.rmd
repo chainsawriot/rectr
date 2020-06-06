@@ -54,11 +54,16 @@ paris_dfm <- transform_dfm_boe(paris_corpus, emb)
 docvars(paris_corpus, "headline") <- paris$headline
 docvars(paris_corpus, "pubdate") <- paris$pubdate
 docvars(paris_corpus, "id") <- paris$id
+usethis::use_data(paris_dfm, overwrite = TRUE)
+
+paris_dfm_bert <- transform_dfm_boe(paris_corpus, mode = "bert", noise = TRUE)
+usethis::use_data(paris_dfm_bert, overwrite = TRUE)
 
 ## Delete all text content, sorry, researchers!
+
 paris_corpus[1:3391] <- NA
 usethis::use_data(paris_corpus, overwrite = TRUE)
-usethis::use_data(paris_dfm, overwrite = TRUE)
+
 ```
 
 Again, due to copyright reasons, we cannot provide the full text and the version translated by Google (using the DTM translation method by Reber 2019). The DTM (in STM) is available in this package. It was created using this code.
@@ -71,9 +76,55 @@ require(quanteda)
 
 textdata <- readRDS("final_data_endefr.RDS") %>% mutate(content = paste(lede, body), lang = tolower(lang), id = row_number()) %>% select(content, lang, pubdate, headline, id)
 
-## Please insert your google token here. Uncomment if needed.
-## gl_auth("____.json")
+textdata %>% filter(lang != "en") -> FR_DE_content
 
+## Please insert your google token here. Uncomment if needed.
+gl_auth("")
+
+glx <- function(content, source) {
+    print(substr(content, 1, 30))
+    Sys.sleep(sample(1:5))
+    res <- gl_translate(content, source, target = "en", format = 'text')
+    print(substr(res$translatedText, 1, 30))
+    return(res)
+}
+
+FR_DE_trans <- map2(FR_DE_content$content, FR_DE_content$lang, safely(glx))
+
+dead <- map_lgl(map(FR_DE_trans, "error"), Negate(is.null))
+
+FR_DE_trans2 <- map2(substr(FR_DE$content[dead], 1, 20000), FR_DE$lang[dead], safely(glx))
+
+FR_DE_trans[dead] <- FR_DE_trans2
+
+## saveRDS(FR_DE_trans, "FR_DE_trains.RDS")
+
+## ## reassumble
+
+FR_DE_trans %>% map_chr(~.$result$translatedText) -> translated_content
+
+textdata$google_translate <- textdata$content
+
+textdata$google_translate[textdata$lang == "fr"] <- translated_content[FR_DE_content$lang == "fr"]
+
+textdata$google_translate[textdata$lang == "de"] <- translated_content[FR_DE_content$lang == "de"]
+
+textdata %>% sample_n(20) %>% select(content, google_translate, lang)
+
+## saveRDS(textdata, "paris_ft_translate.RDS")
+
+####
+
+## textdata <- readRDS("paris_ft_translate.RDS")
+
+min_docfreq <- (nrow(textdata) * 0.005) %>% ceiling
+max_docfreq <- (nrow(textdata) * 0.99) %>% ceiling
+
+dfm(textdata$google_translate, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = min_docfreq, max_docfreq = max_docfreq) %>% convert(to = 'stm') -> paris_ft_dfm
+
+usethis::use_data(paris_ft_dfm, overwrite = TRUE)
+
+####### tdtm
 
 textdata %>% filter(lang == "fr") %>% pull(content) -> FR_CONTENT
 textdata %>% filter(lang == "de") %>% pull(content) -> DE_CONTENT
@@ -83,7 +134,7 @@ FR_DFM <- dfm(FR_CONTENT, remove = stopwords("fr"), remove_numbers = TRUE, remov
 FR_terms <- colnames(FR_DFM)
 
 
-## Uncomment the following 3 lines if you want to do the google translation
+## ## Uncomment the following 3 lines if you want to do the google translation
 
 ## FR_trans_terms <- gl_translate(FR_terms, source = "fr")
 ## saveRDS(FR_trans_terms, "~/dev/infocrap/FR_trans_terms.RDS")
@@ -123,14 +174,17 @@ textdata$translated_text <- recon_complete_text
 min_docfreq <- (nrow(textdata) * 0.005) %>% ceiling
 max_docfreq <- (nrow(textdata) * 0.99) %>% ceiling
 
-dfm(textdata$translated_text, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = min_docfreq, max_docfreq = max_docfreq) %>% convert(to = 'stm') -> paris_translated_dfm
-usethis::use_data(paris_translated_dfm, overwrite = TRUE)
+dfm(textdata$translated_text, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = min_docfreq, max_docfreq = max_docfreq) %>% convert(to = 'stm') -> paris_tdtm_dfm
+
+usethis::use_data(paris_tdtm_dfm, overwrite = TRUE)
 ```
 
 
 # Actual reproduction
 
 Reproduce the analyses in the paper.
+
+Aligned fastText
 
 ```{r}
 require(rectr)
@@ -154,7 +208,24 @@ paris_gmm <- calculate_gmm(paris_dfm_filtered, seed = 42)
 paris_gmm
 ```
 
-## Appendix I
+M-BERT
+
+
+```{r}
+paris_dfm_bert
+```
+
+```{r}
+paris_dfm_bert_filtered <- filter_dfm(paris_dfm_bert, paris_corpus, k = 5)
+paris_dfm_bert_filtered
+```
+
+```{r}
+paris_gmm_bert <- calculate_gmm(paris_dfm_bert_filtered, seed = 42)
+paris_gmm_bert
+```
+
+## Appendix I: af-rectr
 
 ```{r}
 get_sample <- function(i, paris_corpus, theta, threshold = 0.8, replace = FALSE) {
@@ -165,7 +236,26 @@ set.seed(42)
 map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm$theta) %>% unique %>% print(n = 100)
 ```
 
-## Appendix II
+## Appendix I: mb-rectr
+
+```{r}
+set.seed(32)
+map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm_bert$theta) %>% unique %>% print(n = 100)
+```
+
+
+## Appendix III: tdtm-stm
+
+```{r}
+require(stm)
+
+set.seed(42)
+translated_stm <- stm(paris_tdtm_dfm$documents, paris_tdtm_dfm$vocab, K = 5)
+set.seed(42)
+map_dfr(1:5, get_sample, paris_corpus, theta = translated_stm$theta, replace = TRUE) %>% unique %>% print(n = 100)
+```
+
+## Appendix IV: ft-stm
 
 ```{r}
 require(stm)
@@ -174,9 +264,10 @@ require(googleLanguageR)
 require(quanteda)
 
 set.seed(42)
-translated_stm  <- stm(paris_translated_dfm$documents, paris_translated_dfm$vocab, K = 5)
+ft_stm  <- stm(paris_ft_dfm$documents, paris_ft_dfm$vocab, K = 5)
+
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = translated_stm$theta, replace = TRUE) %>% unique %>% print(n = 100)
+map_dfr(1:5, get_sample, paris_corpus, theta = ft_stm$theta, replace = TRUE) %>% unique %>% print(n = 100)
 ```
 
 # Human coding
@@ -191,6 +282,7 @@ Correlation between two coders
 
 ```{r}
 cor.test(paris_human_coding$coder1, paris_human_coding$coder2)
+irr::kripp.alpha(matrix(c(paris_human_coding$coder1, paris_human_coding$coder2), nrow = 2, byrow = TRUE), method = "ordinal")
 ```
 
 ```{r}
@@ -199,18 +291,21 @@ cal_sim <- function(id1, id2, thetax) {
     cosine(thetax[id1,], thetax[id2,])[1,1]
 }
 
-paris_human_coding %>% mutate(rectr_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = paris_gmm$theta), tstm_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = translated_stm$theta), human = (coder1 + coder2) / 2) -> paris_topic_sim
-cor.test(paris_topic_sim$human, paris_topic_sim$rectr_topicsim)
+paris_human_coding %>% mutate(rectr_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = paris_gmm$theta), bert_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = paris_gmm_bert$theta), tstm_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = translated_stm$theta), ft_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = ft_stm$theta) , human = (coder1 + coder2) / 2) -> paris_topic_sim
 ```
 
 ```{r}
+cor.test(paris_topic_sim$human, paris_topic_sim$rectr_topicsim)
+cor.test(paris_topic_sim$human, paris_topic_sim$bert_topicsim)
+
 cor.test(paris_topic_sim$human, paris_topic_sim$tstm_topicsim)
+cor.test(paris_topic_sim$human, paris_topic_sim$ft_topicsim)
 ```
 
 ## Figure 3
 
 ```{r}
-paris_topic_sim %>% select(rectr_topicsim, tstm_topicsim, human) %>% gather(key = "model", value = "similarity", -human) %>% mutate(model = ifelse(model == "rectr_topicsim", "rectr", "tSTM")) %>% ggplot(aes(x = human, y = similarity)) + geom_point() + facet_grid(model ~ .) + geom_smooth(method = 'lm') + ylab("Topic Similarity") + xlab("Human evaluation")
+paris_topic_sim %>% select(rectr_topicsim, tstm_topicsim, ft_topicsim, bert_topicsim, human) %>% gather(key = "model", value = "similarity", -human) %>% mutate(model = recode(model, rectr_topicsim = "af-rectr", bert_topicsim = "mb-rectr", tstm_topicsim = "tdtm-stm", ft_topicsim = "ft-stm")) %>%  ggplot(aes(x = human, y = similarity)) + geom_point(alpha = 0.5) + facet_grid(fct_relevel(model, "af-rectr", "mb-rectr") ~ .) + geom_smooth(method = 'lm') + ylab("Topic Similarity") + xlab("Human evaluation")
 ```
 
 ## Figure 2
@@ -218,7 +313,22 @@ paris_topic_sim %>% select(rectr_topicsim, tstm_topicsim, human) %>% gather(key 
 ```{r}
 require(ggridges)
 
-tibble(theta = c(paris_gmm$theta[,1], paris_gmm$theta[,2], paris_gmm$theta[,3], paris_gmm$theta[,4], paris_gmm$theta[,5], translated_stm$theta[,1], translated_stm$theta[,2], translated_stm$theta[,3], translated_stm$theta[,4], translated_stm$theta[,5]), lang = rep(docvars(paris_corpus, "lang"), 10), pubdate = rep(docvars(paris_corpus, "pubdate"), 10), topic = c(sort(rep(1:5, length(paris_corpus))), sort(rep(1:5, length(paris_corpus)))), method = c(rep("rectr", 16955), rep("tSTM", 16955))) %>% ggplot(aes(x = theta, y = topic, group = topic)) + geom_density_ridges(aes(fill = lang), alpha = .5, color = "white", from = 0, to = 1) + facet_grid(lang ~ method) + scale_y_continuous(breaks=seq_len(5), labels=c("t1", "t2", "t3", "t4", "t5")) + xlab(expression(theta[t]))
+theta_to_tibble <- function(theta, method = "af-rectr", paris_corpus) {
+    tibble(theta = c(theta[,1], theta[,2], theta[,3], theta[,4], theta[,5]), lang = rep(docvars(paris_corpus, "lang"), 5), pubdate = rep(docvars(paris_corpus, "pubdate"), 5), topic = c(sort(rep(1:5, length(paris_corpus)))), method = method)
+}
+
+
+map2_dfr(list(paris_gmm$theta, paris_gmm_bert$theta, translated_stm$theta, ft_stm$theta), c("af-rectr", "mb-rectr", "tdtm-stm", "ft-stm"), theta_to_tibble, paris_corpus = paris_corpus) %>% ggplot(aes(x = theta, y = topic, group = topic)) + geom_density_ridges(aes(fill = lang), alpha = .5, color = "white", from = 0, to = 1) + facet_grid(lang ~ fct_relevel(method, "af-rectr", "mb-rectr")) + scale_y_continuous(breaks=seq_len(5), labels=c("t1", "t2", "t3", "t4", "t5")) + xlab(expression(theta[t]))
+```
+
+# HHI
+
+```{r}
+cal_hhi <- function(model, method = "af-rectr") {
+    tibble(best_fit = apply(model$theta, 1, which.max), lang = docvars(paris_corpus, "lang")) %>% count(best_fit, lang) %>% group_by(best_fit) %>% mutate(tn = sum(n), prob = (n / tn)^2) %>% summarise(hhi = sum(prob)) %>% mutate(method = method)
+}
+
+map2_dfr(list(paris_gmm, paris_gmm_bert, translated_stm, ft_stm), c("af-rectr", "mb-rectr", "tdtm-stm", 'ft-stm'), cal_hhi) %>% ggplot(aes(x = best_fit, y = hhi)) + geom_bar(stat = 'identity') + facet_grid(. ~ fct_relevel(method, "af-rectr", "mb-rectr")) + xlab("topic")
 ```
 
 ## Figure 4

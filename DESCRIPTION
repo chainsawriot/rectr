@@ -1,6 +1,6 @@
 Package: rectr
 Title: Reproducible Extraction of Cross-lingual Topics Using R.
-Version: 0.0.7
+Version: 0.1.1
 Authors@R: 
     person(given = "Chung-hong",
            family = "Chan",
@@ -21,5 +21,7 @@ Imports:
     furrr,
     future,
     RSpectra,
-    magrittr
-RoxygenNote: 7.0.2
+    magrittr,
+    reticulate,
+    tokenizers
+RoxygenNote: 7.1.0
