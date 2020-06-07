@@ -22,7 +22,7 @@ def bert_sentence(content, model = BertModel.from_pretrained("bert-base-multilin
     """Assuming content to be a vector of text from R"""
     sentence_tensors = []
     if noise:
-        print(content[0][0:30])
+        print(content[0])
     for text in content:
         input_ids = tokenizer.encode(text, add_special_tokens = True, max_length = max_length, return_tensors = 'pt')		
         with torch.no_grad():

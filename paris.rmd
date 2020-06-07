@@ -64,6 +64,7 @@ usethis::use_data(paris_dfm, overwrite = TRUE)
 paris_dfm_bert <- transform_dfm_boe(paris_corpus, mode = "bert", noise = TRUE)
 usethis::use_data(paris_dfm_bert, overwrite = TRUE)
 
+
 ## Delete all text content, sorry, researchers!
 
 paris_corpus[1:3391] <- NA

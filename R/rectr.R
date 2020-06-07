@@ -88,9 +88,14 @@ create_corpus <- function(text_content, lang) {
     bag_of_embeddings %>% dplyr::summarise_at(dplyr::vars(X2:X301), mean, na.rm = TRUE)
 }
 
-.bert <- function(content, noise = FALSE, max_length = 512) {
+.bert_cleanse <- function(text, lang) {
+    quanteda::tokens(text) %>% tokens_remove(stopwords(lang)) %>% paste(collapse = " ")
+}
+
+.bert <- function(content, lang, noise = FALSE, max_length = 512L) {
     reticulate::use_miniconda("miniconda3", required = TRUE)
     reticulate::source_python(system.file("python", "bert.py", package = 'rectr'))
+    content <- purrr::map2_chr(content, lang, .bert_cleanse)
     sentences <- tokenizers::tokenize_sentences(content)
     list_of_embedding <- purrr::map(sentences, bert_sentence, max_length = max_length, noise = noise)
     dfm_bert <- do.call(rbind, list_of_embedding)
@@ -115,7 +120,7 @@ transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert
         furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress) %>% as.matrix -> real_dfm
     } else if (mode == "bert"){
         mode <- "bert"
-        real_dfm <- .bert(as.vector(corpus), noise = noise)
+        real_dfm <- .bert(content = as.vector(corpus), lang =  quanteda::docvars(corpus, "lang"), noise = noise)
     } else {
         stop("Argument 'mode' must be 'bert' or 'fasttext'.")
     }
