@@ -1,10 +1,10 @@
 import torch
 from transformers import *
 
-##model_class, tokenizer_class = (BertModel, BertTokenizer)
+model_class, tokenizer_class = (BertModel, BertTokenizer)
 
-##model = model_class.from_pretrained("bert-base-multilingual-cased")
-##tokenizer = tokenizer_class.from_pretrained("bert-base-multilingual-cased")
+model = model_class.from_pretrained("bert-base-multilingual-cased")
+tokenizer = tokenizer_class.from_pretrained("bert-base-multilingual-cased")
 
 def bert_word(text, model = BertModel.from_pretrained("bert-base-multilingual-cased"), tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")):
     return(pipeline("feature-extraction", model = model, tokenizer = tokenizer)(text))
@@ -48,3 +48,18 @@ def bert_tokenize(text, tokenizer = BertTokenizer.from_pretrained("bert-base-mul
 
 # def masked(text, model = BertModel.from_pretrained("bert-base-multilingual-cased"), tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")):
 #     return(pipeline("fill-mask", model = model, tokenizer = tokenizer)(text))
+
+
+# input_ids = tokenizer.encode("Hello a!", add_special_tokens = True, max_length = 512, return_tensors = "pt")
+
+# with torch.no_grad():
+#     output_tuple = model(input_ids)
+
+# cls1 = output_tuple[0].squeeze()[0]
+
+# input_ids = tokenizer.encode("Ciao!", add_special_tokens = True, max_length = 512, return_tensors = "pt")
+
+# with torch.no_grad():
+#     output_tuple = model(input_ids)
+
+# cls2 = output_tuple[0].squeeze()[0]
