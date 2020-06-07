@@ -1,13 +1,17 @@
 import torch
 from transformers import *
 
-model_class, tokenizer_class = (BertModel, BertTokenizer)
+# model_class, tokenizer_class = (BertModel, BertTokenizer)
 
-model = model_class.from_pretrained("bert-base-multilingual-cased")
-tokenizer = tokenizer_class.from_pretrained("bert-base-multilingual-cased")
+# model = model_class.from_pretrained("bert-base-multilingual-cased")
+# tokenizer = tokenizer_class.from_pretrained("bert-base-multilingual-cased")
 
 def bert_word(text, model = BertModel.from_pretrained("bert-base-multilingual-cased"), tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")):
     return(pipeline("feature-extraction", model = model, tokenizer = tokenizer)(text))
+
+# def bert_mt(text, src = "de", target = "en", model = BertModel.from_pretrained("bert-base-multilingual-cased"), tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")):
+#     pipeline_name = "translation_" + src + "_to_" + target
+#     return(pipeline(pipeline_name, model = model, tokenizer = tokenizer)(text))
 
 # def bert_sentence(text, model = BertModel.from_pretrained("bert-base-multilingual-cased"), tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased"), max_length = 512):
 #     input_ids = tokenizer.encode(text, add_special_tokens = True, max_length = max_length, return_tensors = 'pt')		

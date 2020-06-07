@@ -1,6 +1,6 @@
 Package: rectr
 Title: Reproducible Extraction of Cross-lingual Topics Using R.
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     person(given = "Chung-hong",
            family = "Chan",

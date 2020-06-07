@@ -78,10 +78,13 @@ create_corpus <- function(text_content, lang) {
     return(stringr::str_split(tolower(text), "[[:punct:][:space:]]")[[1]])
 }
 
-.gen_doc_embedding <- function(text_content, lang,  emb, boe = FALSE) {
+.gen_doc_embedding <- function(text_content, lang,  emb, boe = FALSE, remove_stopwords = TRUE) {
     splited_word <- .tokenize(text_content)
     candidate_words <- tibble::tibble(X1 = splited_word)
-    bag_of_embeddings <- candidate_words %>% dplyr::left_join(emb[[lang]], by = "X1") %>% dplyr::filter(X1 != "") %>% dplyr::filter(!X1 %in% quanteda::stopwords(lang))
+    bag_of_embeddings <- candidate_words %>% dplyr::left_join(emb[[lang]], by = "X1") %>% dplyr::filter(X1 != "")
+    if (remove_stopwords) {
+        bag_of_embeddings %>% dplyr::filter(!X1 %in% quanteda::stopwords(lang)) -> bag_of_embeddings
+    }
     if (boe) {
         return(bag_of_embeddings)
     }
@@ -92,16 +95,17 @@ create_corpus <- function(text_content, lang) {
     quanteda::tokens(text) %>% tokens_remove(stopwords(lang)) %>% paste(collapse = " ")
 }
 
-.bert <- function(content, lang, noise = FALSE, max_length = 512L) {
+.bert <- function(content, lang, noise = FALSE, remove_stopwords = TRUE, max_length = 512L) {
     reticulate::use_miniconda("miniconda3", required = TRUE)
     reticulate::source_python(system.file("python", "bert.py", package = 'rectr'))
-    content <- purrr::map2_chr(content, lang, .bert_cleanse)
+    if (remove_stopwords) {
+        content <- purrr::map2_chr(content, lang, .bert_cleanse)
+    }
     sentences <- tokenizers::tokenize_sentences(content)
     list_of_embedding <- purrr::map(sentences, bert_sentence, max_length = max_length, noise = noise)
     dfm_bert <- do.call(rbind, list_of_embedding)
     return(dfm_bert)
 }
-
 
 #' Generate a document-feature matrix using word embeddings
 #'
@@ -110,17 +114,19 @@ create_corpus <- function(text_content, lang) {
 #' @param emb a list of word embeddings loaded from read_ft()
 #' @param .progress boolean, displaying a progress bar or not
 #' @param mode character, either 'bert' or 'fasttext'
+#' @param noise boolean, printing noise so that you know the transmation is progressing
+#' @param remove_stopwords, boolean, whether or not to remove stopwords
 #' @return a rectr_dfm object
 #' @importFrom magrittr %>%
 #' @export
-transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert", noise = FALSE) {
+transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert", noise = FALSE, remove_stopwords = TRUE) {
     if (mode == "fasttext" | !is.null(emb)) {
         mode <- "fasttext"
         future:::plan(future::multiprocess)
-        furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress) %>% as.matrix -> real_dfm
+        furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress, remove_stopwords = remove_stopwords) %>% as.matrix -> real_dfm
     } else if (mode == "bert"){
         mode <- "bert"
-        real_dfm <- .bert(content = as.vector(corpus), lang =  quanteda::docvars(corpus, "lang"), noise = noise)
+        real_dfm <- .bert(content = as.vector(corpus), lang =  quanteda::docvars(corpus, "lang"), noise = noise, remove_stopwords = remove_stopwords)
     } else {
         stop("Argument 'mode' must be 'bert' or 'fasttext'.")
     }

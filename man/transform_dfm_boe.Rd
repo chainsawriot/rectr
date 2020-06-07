@@ -9,7 +9,8 @@ transform_dfm_boe(
   emb = NULL,
   .progress = TRUE,
   mode = "bert",
-  noise = FALSE
+  noise = FALSE,
+  remove_stopwords = TRUE
 )
 }
 \arguments{
@@ -20,6 +21,10 @@ transform_dfm_boe(
 \item{.progress}{boolean, displaying a progress bar or not}
 
 \item{mode}{character, either 'bert' or 'fasttext'}
+
+\item{noise}{boolean, printing noise so that you know the transmation is progressing}
+
+\item{remove_stopwords, }{boolean, whether or not to remove stopwords}
 }
 \value{
 a rectr_dfm object
