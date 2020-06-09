@@ -7,10 +7,11 @@
 filter_dfm(
   input_dfm,
   k,
-  corpus,
+  corpus = NULL,
   multiplication_factor = 2,
   dimension = 100,
-  alpha = 0.05
+  alpha = 0.05,
+  noise = FALSE
 )
 }
 \arguments{

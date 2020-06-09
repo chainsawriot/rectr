@@ -95,13 +95,18 @@ create_corpus <- function(text_content, lang) {
     quanteda::tokens(text) %>% tokens_remove(stopwords(lang)) %>% paste(collapse = " ")
 }
 
-.bert <- function(content, lang, noise = FALSE, remove_stopwords = TRUE, max_length = 512L) {
-    reticulate::use_miniconda("miniconda3", required = TRUE)
-    reticulate::source_python(system.file("python", "bert.py", package = 'rectr'))
+.bert <- function(content, lang, noise = FALSE, remove_stopwords = TRUE, max_length = 512L, bert_sentence_tokenization = TRUE) {
     if (remove_stopwords) {
         content <- purrr::map2_chr(content, lang, .bert_cleanse)
     }
-    sentences <- tokenizers::tokenize_sentences(content)
+    if (bert_sentence_tokenization) {
+        sentences <- tokenizers::tokenize_sentences(content)
+    } else {
+        sentences <- purrr::map(content, ~ list(.))
+    }
+    ### loading Python
+    reticulate::use_miniconda("miniconda3", required = TRUE)
+    reticulate::source_python(system.file("python", "bert.py", package = 'rectr'))
     list_of_embedding <- purrr::map(sentences, bert_sentence, max_length = max_length, noise = noise)
     dfm_bert <- do.call(rbind, list_of_embedding)
     return(dfm_bert)
@@ -119,14 +124,14 @@ create_corpus <- function(text_content, lang) {
 #' @return a rectr_dfm object
 #' @importFrom magrittr %>%
 #' @export
-transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert", noise = FALSE, remove_stopwords = TRUE) {
+transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert", noise = FALSE, remove_stopwords = TRUE, bert_sentence_tokenization = TRUE) {
     if (mode == "fasttext" | !is.null(emb)) {
         mode <- "fasttext"
         future:::plan(future::multiprocess)
         furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress, remove_stopwords = remove_stopwords) %>% as.matrix -> real_dfm
     } else if (mode == "bert"){
         mode <- "bert"
-        real_dfm <- .bert(content = as.vector(corpus), lang =  quanteda::docvars(corpus, "lang"), noise = noise, remove_stopwords = remove_stopwords)
+        real_dfm <- .bert(content = as.vector(corpus), lang =  quanteda::docvars(corpus, "lang"), noise = noise, remove_stopwords = remove_stopwords, bert_sentence_tokenization = bert_sentence_tokenization)
     } else {
         stop("Argument 'mode' must be 'bert' or 'fasttext'.")
     }
@@ -145,14 +150,18 @@ print.rectr_dfm <- function(rectr_dfm) {
     cat(paste0("dfm with a dimension of ", nrow(rectr_dfm$dfm), " x ", ncol(rectr_dfm$dfm), " and ", paste0(unique(quanteda::docvars(rectr_dfm$corpus, "lang")), collapse = "/"), " language(s).\n", ifelse(rectr_dfm$filtered, paste("Filtered with k = ", rectr_dfm$k), ""), "\nAligned word embeddings: ", rectr_dfm$mode, "\n"))
 }
 
-.check_lang_indep <- function(lsa_res, lang_vector, alpha = 0.05) {
+.check_lang_indep <- function(lsa_res, lang_vector, alpha = 0.05, noise = FALSE) {
     max_i <- ncol(lsa_res)
     for (i in 1:max_i) {
         p <- summary(aov(lsa_res[,i]~lang_vector))[[1]]$`Pr(>F)`[1]
         if (p > alpha) {
+            if (noise) {
+                print(paste0("Select from: ", i, " th dimension."))
+            }
             return(i)
         }
     }
+    stop("All selected dimensions in the U Matrix have a significant language influence. Adjust parameters 'alpha' and/or 'dimension'.")
 }
 
 
@@ -178,10 +187,18 @@ print.rectr_dfm <- function(rectr_dfm) {
 #' @param alpha double, alpha level to filter the U-Matrix using one-way ANOVA.
 #' @return an rectr_dfm object
 #' @export
-filter_dfm <- function(input_dfm, k, corpus, multiplication_factor = 2, dimension = 100, alpha = 0.05) {
+filter_dfm <- function(input_dfm, k, corpus = NULL, multiplication_factor = 2, dimension = 100, alpha = 0.05, noise = FALSE) {
+    if (is.null(corpus)) {
+        ## check if the input_dfm has a corpus
+        if (!is.null(input_dfm$corpus)) {
+            corpus <- input_dfm$corpus
+        } else {
+            stop("Corpus not found.")
+        }
+    }
     svd_dfm <- RSpectra::svds(input_dfm$dfm, k = dimension, nu = dimension, nv = dimension)$u
     lang_vector <- quanteda::docvars(corpus, "lang")
-    i <- .check_lang_indep(svd_dfm, lang_vector, alpha)
+    i <- .check_lang_indep(svd_dfm, lang_vector, alpha, noise = noise)
     max_d <- (k * multiplication_factor) + i
     input_dfm$dfm <- svd_dfm[,i:max_d]
     input_dfm$k <- k

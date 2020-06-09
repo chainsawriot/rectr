@@ -10,7 +10,8 @@ transform_dfm_boe(
   .progress = TRUE,
   mode = "bert",
   noise = FALSE,
-  remove_stopwords = TRUE
+  remove_stopwords = TRUE,
+  bert_sentence_tokenization = TRUE
 )
 }
 \arguments{
