@@ -10,13 +10,15 @@ output:
 
 Due to copyright reasons, we cannot bundle the full text of New York Times, Süddeutsche Zeitung and Le Fegaro news articles in this package.
 
-The first few rows of the data look like so.
+The first few rows of the data look like so. 
 
 ```{r, eval = FALSE}
 require(rectr)
 require(tibble)
 require(dplyr)
 require(quanteda)
+require(tidyverse)
+
 readRDS("final_data_endefr.RDS")
 ```
 
@@ -37,13 +39,30 @@ readRDS("final_data_endefr.RDS")
 
 The content column has the content of the news articles. For the rectr method, a processed version of the corpus and dfm is available in this package. The data was generated using the following code.
 
-```{r, eval = FALSE}
+```{r}
 require(rectr)
-require(tibble)
-require(dplyr)
+require(tidyverse)
 require(quanteda)
 
 readRDS("final_data_endefr.RDS") %>% mutate(content = paste(lede, body), lang = tolower(lang), id = row_number(), outlet = recode(lang, 'en' = 'NYT', 'de' = 'SZ', 'fr' = 'LF')) %>% select(content, lang, pubdate, headline, id, outlet) -> paris
+```
+
+There are three French articles published in NYT. In order not to interfere the analysis, these three articles were excluded. 
+
+```{r}
+excluded_id <- c(1729, 1815, 1843)
+paris$outlet[excluded_id]
+paris$headline[excluded_id]
+```
+
+
+Fixing coding
+
+```{r}
+require(rectr)
+paris_human_coding[102,3] <- 1939
+rio::export(paris_human_coding, "paris_human_coding.csv")
+usethis::use_data(paris_human_coding, overwrite = TRUE)
 ```
 
 ```{r, eval = FALSE}
@@ -52,33 +71,30 @@ get_ft("de")
 get_ft("en")
 ```
 
-```{r, eval = FALSE}
+```{r}
 emb <- read_ft(c("fr", "de", "en"))
 paris_corpus <- create_corpus(paris$content, paris$lang)
-paris_dfm <- transform_dfm_boe(paris_corpus, emb)
 docvars(paris_corpus, "headline") <- paris$headline
 docvars(paris_corpus, "pubdate") <- paris$pubdate
 docvars(paris_corpus, "id") <- paris$id
 docvars(paris_corpus, "outlet") <- paris$outlet
 
-usethis::use_data(paris_dfm, overwrite = TRUE)
+paris_corpus <- paris_corpus[-excluded_id]
+
+paris_dfm <- transform_dfm_boe(paris_corpus, emb)
+saveRDS(paris_dfm, "paris_dfm.RDS")
 
 paris_dfm_bert <- transform_dfm_boe(paris_corpus, mode = "bert", noise = TRUE)
-usethis::use_data(paris_dfm_bert, overwrite = TRUE)
-
-
-## Delete all text content, sorry, researchers!
-
-paris_corpus[1:3391] <- NA
-usethis::use_data(paris_corpus, overwrite = TRUE)
-
+saveRDS(paris_dfm_bert, "paris_dfm_bert.RDS")
 ```
 
+
+
 Again, due to copyright reasons, we cannot provide the full text and the version translated by Google (using the DTM translation method by Reber 2019). The DTM (in STM) is available in this package. It was created using this code.
-v
+
 ```{r, eval = FALSE}
 require(tidyverse)
-require(googleLanguageR)
+##require(googleLanguageR)
 require(stm)
 require(quanteda)
 
@@ -97,6 +113,7 @@ glx <- function(content, source) {
     return(res)
 }
 
+### You need to pay Google over USD200 for running this line. Also 5 hrs of your time.
 FR_DE_trans <- map2(FR_DE_content$content, FR_DE_content$lang, safely(glx))
 
 dead <- map_lgl(map(FR_DE_trans, "error"), Negate(is.null))
@@ -119,20 +136,22 @@ textdata$google_translate[textdata$lang == "de"] <- translated_content[FR_DE_con
 
 textdata %>% sample_n(20) %>% select(content, google_translate, lang)
 
-## saveRDS(textdata, "paris_ft_translate.RDS")
+saveRDS(textdata, "paris_ft_translate.RDS")
+```
 
-####
-
-## textdata <- readRDS("paris_ft_translate.RDS")
+```{r}
+## Exclusion of three French NYT articles.
+textdata <- readRDS("paris_ft_translate.RDS")[-excluded_id,]
 
 min_docfreq <- (nrow(textdata) * 0.005) %>% ceiling
 max_docfreq <- (nrow(textdata) * 0.99) %>% ceiling
 
 dfm(textdata$google_translate, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = min_docfreq, max_docfreq = max_docfreq) %>% convert(to = 'stm') -> paris_ft_dfm
 
-usethis::use_data(paris_ft_dfm, overwrite = TRUE)
 
 ####### tdtm
+
+textdata <- readRDS("paris_ft_translate.RDS")
 
 textdata %>% filter(lang == "fr") %>% pull(content) -> FR_CONTENT
 textdata %>% filter(lang == "de") %>% pull(content) -> DE_CONTENT
@@ -145,8 +164,8 @@ FR_terms <- colnames(FR_DFM)
 ## ## Uncomment the following 3 lines if you want to do the google translation
 
 ## FR_trans_terms <- gl_translate(FR_terms, source = "fr")
-## saveRDS(FR_trans_terms, "~/dev/infocrap/FR_trans_terms.RDS")
-## saveRDS(FR_terms, "~/dev/infocrap/FR_terms.RDS")
+## saveRDS(FR_trans_terms, "FR_trans_terms.RDS")
+## saveRDS(FR_terms, "FR_terms.RDS")
 
 
 DE_DFM <- dfm(DE_CONTENT, remove = stopwords("de"), , remove_numbers = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = 2)
@@ -156,11 +175,11 @@ DE_terms <- colnames(DE_DFM)
 ## Uncomment the following 3 lines if you want to do the google translation
 
 ## DE_trans_terms <- gl_translate(DE_terms, source = "de")
-## saveRDS(DE_trans_terms, "~/dev/infocrap/DE_trans_terms.RDS")
-## saveRDS(DE_terms, "~/dev/infocrap/DE_terms.RDS")
+## saveRDS(DE_trans_terms, "DE_trans_terms.RDS")
+## saveRDS(DE_terms, "DE_terms.RDS")
 
-DE_trans_terms <- readRDS("~/dev/infocrap/DE_trans_terms.RDS")
-FR_trans_terms <- readRDS("~/dev/infocrap/FR_trans_terms.RDS")
+DE_trans_terms <- readRDS("DE_trans_terms.RDS")
+FR_trans_terms <- readRDS("FR_trans_terms.RDS")
 
 
 FR_tokens <- tokens(FR_CONTENT, remove_numbers = TRUE, remove_punct = TRUE)
@@ -172,6 +191,7 @@ recon <- function(token_obj, trans_terms) {
     tibble(text = tolower(token_obj)) %>% left_join(trans_terms, by = 'text') %>% filter(!is.na(translatedText)) %>% pull(translatedText) %>% paste(collapse = " ")
 }
 
+
 FR_recon_en_text <- map_chr(FR_tokens, recon, trans_terms = FR_trans_terms)
 
 DE_recon_en_text <- map_chr(DE_tokens, recon, trans_terms = DE_trans_terms)
@@ -179,11 +199,39 @@ DE_recon_en_text <- map_chr(DE_tokens, recon, trans_terms = DE_trans_terms)
 recon_complete_text <- c(FR_recon_en_text, EN_CONTENT, DE_recon_en_text)
 textdata$translated_text <- recon_complete_text
 
+### Exclusion of three NYT articles.
+
+textdata <- textdata[-excluded_id,]
+
 min_docfreq <- (nrow(textdata) * 0.005) %>% ceiling
 max_docfreq <- (nrow(textdata) * 0.99) %>% ceiling
 
-dfm(textdata$translated_text, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = min_docfreq, max_docfreq = max_docfreq) %>% convert(to = 'stm') -> paris_tdtm_dfm
+names(textdata$translated_text) <- NULL
 
+dfm(textdata$translated_text, tolower = TRUE, stem = TRUE, remove = stopwords("en"), remove_number = TRUE, remove_punct = TRUE) %>% dfm_trim(min_docfreq = min_docfreq, max_docfreq = max_docfreq) %>% convert(to = 'stm') -> paris_tdtm_dfm
+```
+
+Saving into the data directory, and don't get us into legal trouble.
+
+```{r}
+paris_dfm <- readRDS("paris_dfm.RDS")
+paris_dfm_bert <- readRDS("paris_dfm_bert.RDS")
+
+## Delete all text content, sorry, researchers!
+paris_corpus[1:length(paris_corpus)] <- ""
+
+paris_dfm$corpus <- paris_corpus
+paris_dfm_bert$corpus <- paris_corpus
+
+testthat::expect_true(all(nrow(paris_dfm$dfm) == 3388, nrow(paris_dfm_bert$dfm) == 3388, nrow(paris_tdtm_dfm$meta) == 3388, nrow(paris_ft_dfm$meta) == 3388, length(paris_corpus) == 3388))
+
+testthat::expect_true(all(paris_dfm$corpus == ""))
+testthat::expect_true(all(paris_dfm_bert$corpus == ""))
+
+usethis::use_data(paris_corpus, overwrite = TRUE)
+usethis::use_data(paris_dfm, overwrite = TRUE)
+usethis::use_data(paris_dfm_bert, overwrite = TRUE)
+usethis::use_data(paris_ft_dfm, overwrite = TRUE)
 usethis::use_data(paris_tdtm_dfm, overwrite = TRUE)
 ```
 
@@ -199,10 +247,6 @@ require(rectr)
 require(tidyverse)
 require(quanteda)
 ###paris_corpus
-```
-
-```{r}
-docvars(paris_corpus, "headline")[c(1729, 1815, 1843)]
 ```
 
 ```{r}
@@ -232,7 +276,7 @@ paris_dfm_bert_filtered
 ```
 
 ```{r}
-paris_gmm_bert <- calculate_gmm(paris_dfm_bert_filtered, seed = 42)
+paris_gmm_bert <- calculate_gmm(paris_dfm_bert_filtered)
 paris_gmm_bert
 ```
 
@@ -244,14 +288,14 @@ get_sample <- function(i, paris_corpus, theta, threshold = 0.8, replace = FALSE)
 }
 
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm$theta) %>% unique %>% print(n = 100) %>% knitr::kable()
+map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm$theta) %>% unique %>% print(n = 100)
 ```
 
 ## Appendix I: mb-rectr
 
 ```{r, results = 'asis'}
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm_bert$theta) %>% unique %>% print(n = 100) %>% knitr::kable()
+map_dfr(1:4, get_sample, paris_corpus, theta = paris_gmm_bert$theta) %>% unique %>% print(n = 100) %>% knitr::kable()
 ```
 
 
