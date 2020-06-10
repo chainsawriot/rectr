@@ -43,7 +43,7 @@ require(tibble)
 require(dplyr)
 require(quanteda)
 
-readRDS("final_data_endefr.RDS") %>% mutate(content = paste(lede, body), lang = tolower(lang), id = row_number()) %>% select(content, lang, pubdate, headline, id) -> paris
+readRDS("final_data_endefr.RDS") %>% mutate(content = paste(lede, body), lang = tolower(lang), id = row_number(), outlet = recode(lang, 'en' = 'NYT', 'de' = 'SZ', 'fr' = 'LF')) %>% select(content, lang, pubdate, headline, id, outlet) -> paris
 ```
 
 ```{r, eval = FALSE}
@@ -59,6 +59,8 @@ paris_dfm <- transform_dfm_boe(paris_corpus, emb)
 docvars(paris_corpus, "headline") <- paris$headline
 docvars(paris_corpus, "pubdate") <- paris$pubdate
 docvars(paris_corpus, "id") <- paris$id
+docvars(paris_corpus, "outlet") <- paris$outlet
+
 usethis::use_data(paris_dfm, overwrite = TRUE)
 
 paris_dfm_bert <- transform_dfm_boe(paris_corpus, mode = "bert", noise = TRUE)
@@ -196,7 +198,11 @@ Aligned fastText
 require(rectr)
 require(tidyverse)
 require(quanteda)
-paris_corpus
+###paris_corpus
+```
+
+```{r}
+docvars(paris_corpus, "headline")[c(1729, 1815, 1843)]
 ```
 
 ```{r}
@@ -204,8 +210,7 @@ paris_dfm
 ```
 
 ```{r}
-emb <- read_ft(c("fr", "de", "en"))
-paris_dfm_filtered <- filter_dfm(paris_dfm, paris_corpus, k = 5)
+paris_dfm_filtered <- filter_dfm(paris_dfm, k = 5, noise = TRUE)
 paris_dfm_filtered
 ```
 
@@ -222,7 +227,7 @@ paris_dfm_bert
 ```
 
 ```{r}
-paris_dfm_bert_filtered <- filter_dfm(paris_dfm_bert, paris_corpus, k = 5)
+paris_dfm_bert_filtered <- filter_dfm(paris_dfm_bert, k = 5, noise = TRUE)
 paris_dfm_bert_filtered
 ```
 
@@ -233,47 +238,47 @@ paris_gmm_bert
 
 ## Appendix I: af-rectr
 
-```{r}
+```{r, results = 'asis'}
 get_sample <- function(i, paris_corpus, theta, threshold = 0.8, replace = FALSE) {
     tibble(hl = docvars(paris_corpus, "headline"), lang = docvars(paris_corpus, "lang"), prob = theta[,i]) %>% group_by(lang) %>% filter(prob > threshold) %>% sample_n(size = 5, weight = prob, replace = replace) %>% select(hl, lang, prob) %>% ungroup %>% arrange(lang, prob) %>% mutate(topic = i)
 }
 
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm$theta) %>% unique %>% print(n = 100)
+map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm$theta) %>% unique %>% print(n = 100) %>% knitr::kable()
 ```
 
 ## Appendix I: mb-rectr
 
-```{r}
-set.seed(32)
-map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm_bert$theta) %>% unique %>% print(n = 100)
+```{r, results = 'asis'}
+set.seed(42)
+map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm_bert$theta) %>% unique %>% print(n = 100) %>% knitr::kable()
 ```
 
 
 ## Appendix III: tdtm-stm
 
-```{r}
+```{r, results = 'asis'}
 require(stm)
 
 set.seed(42)
 translated_stm <- stm(paris_tdtm_dfm$documents, paris_tdtm_dfm$vocab, K = 5)
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = translated_stm$theta, replace = TRUE) %>% unique %>% print(n = 100)
+map_dfr(1:5, get_sample, paris_corpus, theta = translated_stm$theta, replace = TRUE) %>% unique %>% print(n = 100) %>% knitr::kable()
 ```
 
 ## Appendix IV: ft-stm
 
-```{r}
+```{r, results = 'asis'}
 require(stm)
 require(tidyverse)
-require(googleLanguageR)
+##require(googleLanguageR)
 require(quanteda)
 
 set.seed(42)
 ft_stm  <- stm(paris_ft_dfm$documents, paris_ft_dfm$vocab, K = 5)
 
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = ft_stm$theta, replace = TRUE) %>% unique %>% print(n = 100)
+map_dfr(1:5, get_sample, paris_corpus, theta = ft_stm$theta, replace = TRUE) %>% unique %>% print(n = 100) %>% knitr::kable()
 ```
 
 # Human coding
@@ -311,7 +316,7 @@ cor.test(paris_topic_sim$human, paris_topic_sim$ft_topicsim)
 ## Figure 3
 
 ```{r}
-paris_topic_sim %>% select(rectr_topicsim, tstm_topicsim, ft_topicsim, bert_topicsim, human) %>% gather(key = "model", value = "similarity", -human) %>% mutate(model = recode(model, rectr_topicsim = "af-rectr", bert_topicsim = "mb-rectr", tstm_topicsim = "tdtm-stm", ft_topicsim = "ft-stm")) %>%  ggplot(aes(x = human, y = similarity)) + geom_point(alpha = 0.5) + facet_grid(fct_relevel(model, "af-rectr", "mb-rectr") ~ .) + geom_smooth(method = 'lm') + ylab("Topic Similarity") + xlab("Human evaluation")
+paris_topic_sim %>% select(rectr_topicsim, tstm_topicsim, ft_topicsim, bert_topicsim, human) %>% gather(key = "model", value = "similarity", -human) %>% mutate(model = recode(model, rectr_topicsim = "af-rectr", bert_topicsim = "mb-rectr", tstm_topicsim = "tdtm-stm", ft_topicsim = "ft-stm")) %>%  ggplot(aes(x = human, y = similarity)) + geom_point(alpha = 0.5) + facet_grid(fct_relevel(model, "af-rectr", "mb-rectr") ~ .) + geom_smooth(method = 'lm') + ylab("Topical Similarity") + xlab("Human evaluation")
 ```
 
 ## Figure 2
@@ -334,14 +339,14 @@ cal_hhi <- function(model, method = "af-rectr") {
     tibble(best_fit = apply(model$theta, 1, which.max), lang = docvars(paris_corpus, "lang")) %>% count(best_fit, lang) %>% group_by(best_fit) %>% mutate(tn = sum(n), prob = (n / tn)^2) %>% summarise(hhi = sum(prob)) %>% mutate(method = method)
 }
 
-map2_dfr(list(paris_gmm, paris_gmm_bert, translated_stm, ft_stm), c("af-rectr", "mb-rectr", "tdtm-stm", 'ft-stm'), cal_hhi) %>% ggplot(aes(x = best_fit, y = hhi)) + geom_bar(stat = 'identity') + facet_grid(. ~ fct_relevel(method, "af-rectr", "mb-rectr")) + xlab("topic")
+map2_dfr(list(paris_gmm, paris_gmm_bert, translated_stm, ft_stm), c("af-rectr", "mb-rectr", "tdtm-stm", 'ft-stm'), cal_hhi) %>% ggplot(aes(x = best_fit, y = hhi)) + geom_bar(stat = 'identity') + facet_grid(. ~ fct_relevel(method, "af-rectr", "mb-rectr")) + xlab("topic") + ylab("Hirschman-Herfindahl Index")
 ```
 
 ## Figure 4
 
 ```{r}
 require(lubridate)
-tibble(theta = c(paris_gmm$theta[,1], paris_gmm$theta[,2], paris_gmm$theta[,3], paris_gmm$theta[,4], paris_gmm$theta[,5], translated_stm$theta[,1], translated_stm$theta[,2], translated_stm$theta[,3], translated_stm$theta[,4], translated_stm$theta[,5]), lang = rep(docvars(paris_corpus, "lang"), 10), pubdate = rep(docvars(paris_corpus, "pubdate"), 10), topic = c(sort(rep(1:5, length(paris_corpus))), sort(rep(1:5, length(paris_corpus)))), method = c(rep("rectr", 16955), rep("tSTM", 16955))) %>% mutate(pubdate = lubridate::dmy(pubdate)) %>% group_by(topic, lang, pubdate, method) %>% summarise(mean_theta = mean(theta)) %>% ggplot(aes(x = pubdate, y = mean_theta, color = lang)) + geom_line() + facet_grid(topic ~ method) + ylab(expression(theta[t])) + xlab("Date") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+tibble(theta = c(paris_gmm$theta[,1], paris_gmm$theta[,2], paris_gmm$theta[,3], paris_gmm$theta[,4], paris_gmm$theta[,5], translated_stm$theta[,1], translated_stm$theta[,2], translated_stm$theta[,3], translated_stm$theta[,4], translated_stm$theta[,5]), lang = rep(docvars(paris_corpus, "lang"), 10), pubdate = rep(docvars(paris_corpus, "pubdate"), 10), topic = c(sort(rep(1:5, length(paris_corpus))), sort(rep(1:5, length(paris_corpus)))), method = c(rep("af-rectr", 16955), rep("tdtm-stm", 16955))) %>% mutate(pubdate = lubridate::dmy(pubdate)) %>% group_by(topic, lang, pubdate, method) %>% summarise(mean_theta = mean(theta)) %>% ggplot(aes(x = pubdate, y = mean_theta, color = lang)) + geom_line() + facet_grid(topic ~ method) + ylab(expression(theta[t])) + xlab("Date") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 ```{r}
