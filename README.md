@@ -64,25 +64,35 @@ wiki
     ## 10 Wittenberg               "Wittenberg, officially Lutherstadt Witt… en   
     ## # … with 332 more rows
 
-## Download word embeddings
+Currently, this package supports [aligned
+fastText](https://github.com/facebookresearch/fastText/tree/master/alignment)
+from Facebook Research and [Multilingual BERT
+(MBERT)](https://github.com/google-research/bert/blob/master/multilingual.md)
+from Google Research. For easier integration, the PyTorch version of
+MBERT from [Transformers](https://github.com/huggingface/transformers)
+is used.
 
-Download and preprocess fastText word embeddings from Facebook. Make
-sure you are using a Unix machine, e.g. Linux or Mac, have at least 5G
-of disk space and a reasonably amount of RAM. It took around 20 minutes
-on my machine.
+# Multilingual BERT
 
-``` r
-get_ft("en")
-get_ft("de")
-```
-
-Read the downloaded word embeddings.
+## Step 1: Setup your conda environment
 
 ``` r
-emb <- read_ft(c("en", "de"))
+## setup a conda environment, default name: rectr_condaenv
+mbert_env_setup()
 ```
 
-## Create corpus
+## Step 1: Download MBERT model
+
+``` r
+## default to your current directory
+download_mbert(noise = TRUE)
+```
+
+    ## [1] "Conda environment rectr_condaenv is initialized.\n"
+
+    ## [1] "/Users/chainsaw/dev/rectr"
+
+## Step 2: Create corpus
 
 Create a multilingual corpus
 
@@ -90,105 +100,34 @@ Create a multilingual corpus
 wiki_corpus <- create_corpus(wiki$content, wiki$lang)
 ```
 
-## Create bag-of-embeddings dfm
+## Step 2: Create bag-of-embeddings dfm
 
 Create a multilingual dfm
 
 ``` r
-wiki_dfm <- transform_dfm_boe(wiki_corpus, emb)
-```
-
-    ## 
-     Progress: ─                                                           100%
-     Progress: ─                                                           100%
-     Progress: ─                                                           100%
-     Progress: ──                                                          100%
-     Progress: ────                                                        100%
-     Progress: ────                                                        100%
-     Progress: ────                                                        100%
-     Progress: ─────                                                       100%
-     Progress: ──────                                                      100%
-     Progress: ──────                                                      100%
-     Progress: ──────                                                      100%
-     Progress: ───────                                                     100%
-     Progress: ────────                                                    100%
-     Progress: ────────                                                    100%
-     Progress: ────────                                                    100%
-     Progress: ────────                                                    100%
-     Progress: ─────────                                                   100%
-     Progress: ─────────                                                   100%
-     Progress: ──────────                                                  100%
-     Progress: ──────────                                                  100%
-     Progress: ───────────                                                 100%
-     Progress: ───────────                                                 100%
-     Progress: ───────────                                                 100%
-     Progress: ────────────                                                100%
-     Progress: ────────────                                                100%
-     Progress: ─────────────                                               100%
-     Progress: ─────────────                                               100%
-     Progress: ──────────────                                              100%
-     Progress: ───────────────                                             100%
-     Progress: ────────────────                                            100%
-     Progress: ─────────────────                                           100%
-     Progress: ──────────────────                                          100%
-     Progress: ───────────────────                                         100%
-     Progress: ───────────────────                                         100%
-     Progress: ────────────────────                                        100%
-     Progress: ─────────────────────                                       100%
-     Progress: ──────────────────────                                      100%
-     Progress: ────────────────────────                                    100%
-     Progress: ─────────────────────────                                   100%
-     Progress: ──────────────────────────                                  100%
-     Progress: ───────────────────────────                                 100%
-     Progress: ────────────────────────────                                100%
-     Progress: ─────────────────────────────                               100%
-     Progress: ──────────────────────────────                              100%
-     Progress: ───────────────────────────────                             100%
-     Progress: ────────────────────────────────                            100%
-     Progress: ──────────────────────────────────                          100%
-     Progress: ───────────────────────────────────                         100%
-     Progress: ────────────────────────────────────                        100%
-     Progress: ─────────────────────────────────────                       100%
-     Progress: ──────────────────────────────────────                      100%
-     Progress: ───────────────────────────────────────                     100%
-     Progress: ────────────────────────────────────────                    100%
-     Progress: ─────────────────────────────────────────                   100%
-     Progress: ──────────────────────────────────────────                  100%
-     Progress: ──────────────────────────────────────────                  100%
-     Progress: ────────────────────────────────────────────                100%
-     Progress: ────────────────────────────────────────────                100%
-     Progress: ──────────────────────────────────────────────              100%
-     Progress: ───────────────────────────────────────────────             100%
-     Progress: ────────────────────────────────────────────────            100%
-     Progress: ─────────────────────────────────────────────────           100%
-     Progress: ───────────────────────────────────────────────────         100%
-     Progress: ────────────────────────────────────────────────────        100%
-     Progress: ─────────────────────────────────────────────────────       100%
-     Progress: ───────────────────────────────────────────────────────     100%
-     Progress: ────────────────────────────────────────────────────────    100%
-     Progress: ─────────────────────────────────────────────────────────   100%
-     Progress: ──────────────────────────────────────────────────────────  100%
-     Progress: ─────────────────────────────────────────────────────────── 100%
-
-``` r
+## default
+wiki_dfm <- transform_dfm_boe(wiki_corpus, noise = TRUE)
 wiki_dfm
 ```
 
-    ## dfm with a dimension of 342 x 300 and de/en language(s).
+    ## dfm with a dimension of 342 x 768 and de/en language(s).
+    ## 
+    ## Aligned word embeddings: bert
 
-## Filter dfm
+## Step 3: Filter dfm
 
 Filter the dfm for language differences
 
 ``` r
-wiki_dfm_filtered <- filter_dfm(wiki_dfm, wiki_corpus, k = 2)
+wiki_dfm_filtered <- filter_dfm(wiki_dfm, k = 2)
 wiki_dfm_filtered
 ```
 
     ## dfm with a dimension of 342 x 5 and de/en language(s).
     ## Filtered with k =  2
+    ## Aligned word embeddings: bert
 
-## Estimate GMM
+## Step 4: Estimate GMM
 
 Estimate a Guassian Mixture Model
 
@@ -199,6 +138,497 @@ wiki_gmm
 
     ## 2-topic rectr model trained with a dfm with a dimension of 342 x 5 and de/en language(s).
     ## Filtered with k =  2
+    ## Aligned word embeddings: bert
+
+The document-topic matrix is available in `wiki_gmm$theta`.
+
+Rank the articles according to the theta1.
+
+``` r
+wiki %>% mutate(theta1 = wiki_gmm$theta[,1]) %>% arrange(theta1) %>% select(title, lang, theta1) %>% print(n = 400)
+```
+
+    ## # A tibble: 342 x 3
+    ##     title                                                   lang     theta1
+    ##     <chr>                                                   <chr>     <dbl>
+    ##   1 Lustre (Programmiersprache)                             de    4.84e-120
+    ##   2 Babelsberg                                              en    2.00e-118
+    ##   3 Tcllib                                                  de    2.04e-118
+    ##   4 Haskell (programming language)                          en    2.03e-117
+    ##   5 Erlang (Programmiersprache)                             de    2.38e-117
+    ##   6 Lustre (programming language)                           en    3.11e-116
+    ##   7 Opal (programming language)                             en    5.70e-116
+    ##   8 Oz (Programmiersprache)                                 de    5.89e-116
+    ##   9 Rüdesheim am Rhein                                      en    7.88e-116
+    ##  10 Euler (programming language)                            en    8.66e-116
+    ##  11 Großsiedlung Siemensstadt                               en    8.77e-116
+    ##  12 Gofer (programming language)                            en    9.46e-116
+    ##  13 Maple (Software)                                        de    9.51e-116
+    ##  14 Imperial Palace Ingelheim                               en    1.23e-115
+    ##  15 NewLISP                                                 en    3.79e-115
+    ##  16 Lorch, Hesse                                            en    4.81e-115
+    ##  17 Muskau Park                                             en    6.15e-115
+    ##  18 Common Lisp                                             de    6.55e-115
+    ##  19 Tcl/Java                                                en    2.04e-114
+    ##  20 Rammelsberg                                             de    3.34e-114
+    ##  21 Maulbronn Monastery                                     en    3.41e-114
+    ##  22 Coq (Software)                                          de    1.14e-113
+    ##  23 Völklingen Ironworks                                    en    1.19e-113
+    ##  24 Clean (programming language)                            en    1.29e-113
+    ##  25 XProc                                                   de    1.97e-113
+    ##  26 GNU Pascal                                              de    4.32e-113
+    ##  27 Bamberg                                                 en    5.33e-113
+    ##  28 Wismar                                                  en    1.14e-112
+    ##  29 Imperial Abbey of Corvey                                en    7.68e-111
+    ##  30 Windows PowerShell                                      de    3.99e-110
+    ##  31 Embedded SQL                                            de    2.53e- 83
+    ##  32 Embedded SQL                                            en    2.17e- 79
+    ##  33 Java Command Language                                   de    2.47e- 72
+    ##  34 F Sharp (programming language)                          en    7.83e- 68
+    ##  35 StepTalk                                                en    1.38e- 67
+    ##  36 PHP                                                     de    6.17e- 67
+    ##  37 StepTalk                                                de    1.21e- 66
+    ##  38 Python (programming language)                           en    5.36e- 66
+    ##  39 Tcllib                                                  en    2.69e- 63
+    ##  40 JavaScript                                              de    6.05e- 63
+    ##  41 QML                                                     de    9.29e- 63
+    ##  42 Extensible Application Markup Language                  de    1.21e- 62
+    ##  43 Java (programming language)                             en    2.48e- 62
+    ##  44 XSL Transformation                                      de    3.34e- 62
+    ##  45 Boo (programming language)                              en    1.30e- 60
+    ##  46 Ruby (Programmiersprache)                               de    2.74e- 59
+    ##  47 Standard ML                                             en    9.27e- 59
+    ##  48 Objective-C                                             en    1.06e- 58
+    ##  49 Erlang (programming language)                           en    2.64e- 58
+    ##  50 Gofer                                                   de    1.01e- 57
+    ##  51 DrRacket                                                de    6.87e- 57
+    ##  52 Objective-C                                             de    1.68e- 56
+    ##  53 C++                                                     de    7.19e- 56
+    ##  54 Hack (programming language)                             en    1.28e- 55
+    ##  55 Lua                                                     de    1.58e- 55
+    ##  56 Windows PowerShell                                      en    5.50e- 55
+    ##  57 Scala (programming language)                            en    1.14e- 54
+    ##  58 Extensible Application Markup Language                  en    8.00e- 54
+    ##  59 C (Programmiersprache)                                  de    3.12e- 53
+    ##  60 C++                                                     en    4.19e- 53
+    ##  61 JavaScript                                              en    5.06e- 53
+    ##  62 Ruby (programming language)                             en    1.18e- 52
+    ##  63 Synchronized Multimedia Integration Language            de    1.22e- 52
+    ##  64 Scala (Programmiersprache)                              de    1.30e- 52
+    ##  65 Racket (programming language)                           en    4.88e- 52
+    ##  66 PEARL                                                   de    6.08e- 52
+    ##  67 Clojure                                                 en    2.77e- 50
+    ##  68 Vala (programming language)                             en    8.10e- 50
+    ##  69 XProc                                                   en    1.05e- 49
+    ##  70 Io (Programmiersprache)                                 de    2.18e- 49
+    ##  71 Io (programming language)                               en    2.89e- 49
+    ##  72 XSLT                                                    en    1.47e- 48
+    ##  73 MATLAB                                                  en    1.62e- 48
+    ##  74 F-Logic                                                 de    5.99e- 48
+    ##  75 C (programming language)                                en    2.20e- 47
+    ##  76 PHP                                                     en    2.54e- 47
+    ##  77 Smalltalk (Programmiersprache)                          de    2.61e- 47
+    ##  78 Objective CAML                                          de    2.80e- 47
+    ##  79 OCaml                                                   en    6.23e- 47
+    ##  80 Julia (programming language)                            en    7.34e- 47
+    ##  81 XQuery                                                  de    1.32e- 46
+    ##  82 QML                                                     en    1.61e- 46
+    ##  83 C Sharp (programming language)                          en    1.63e- 46
+    ##  84 F-Sharp                                                 de    3.02e- 46
+    ##  85 Curl (programming language)                             en    1.83e- 45
+    ##  86 Vala (Programmiersprache)                               de    3.22e- 45
+    ##  87 CycL                                                    en    1.06e- 44
+    ##  88 Opal (Programmiersprache)                               de    2.86e- 44
+    ##  89 Haskell (Programmiersprache)                            de    9.31e- 44
+    ##  90 ATS (programming language)                              en    1.07e- 43
+    ##  91 C-Sharp                                                 de    1.66e- 43
+    ##  92 Java (Programmiersprache)                               de    3.37e- 43
+    ##  93 Squeak                                                  en    3.75e- 43
+    ##  94 Pharo (Programmiersprache)                              de    2.79e- 42
+    ##  95 Lua (programming language)                              en    2.86e- 42
+    ##  96 Standard ML                                             de    2.77e- 41
+    ##  97 ML (Programmiersprache)                                 de    3.50e- 41
+    ##  98 Common Lisp                                             en    4.52e- 41
+    ##  99 Pharo                                                   en    6.07e- 41
+    ## 100 ISWIM                                                   en    1.70e- 40
+    ## 101 Synchronized Multimedia Integration Language            en    1.80e- 40
+    ## 102 Ada (Programmiersprache)                                de    2.65e- 40
+    ## 103 Miranda (programming language)                          en    3.93e- 40
+    ## 104 Miranda (Programmiersprache)                            de    4.06e- 40
+    ## 105 XQuery                                                  en    4.33e- 40
+    ## 106 MetaPost                                                en    4.46e- 40
+    ## 107 Julia (Programmiersprache)                              de    6.30e- 40
+    ## 108 COBOL                                                   de    6.53e- 40
+    ## 109 Self (programming language)                             en    7.98e- 40
+    ## 110 Strongtalk                                              en    1.23e- 39
+    ## 111 Adenine                                                 de    3.71e- 39
+    ## 112 Clojure                                                 de    5.68e- 39
+    ## 113 Applied Type System                                     de    1.67e- 38
+    ## 114 Perl (Programmiersprache)                               de    2.00e- 38
+    ## 115 GNU Pascal                                              en    2.81e- 38
+    ## 116 Lout                                                    de    3.65e- 38
+    ## 117 D (programming language)                                en    8.43e- 38
+    ## 118 F-logic                                                 en    8.64e- 38
+    ## 119 Adenine (programming language)                          en    1.56e- 37
+    ## 120 J (programming language)                                en    1.82e- 37
+    ## 121 Hack (Programmiersprache)                               de    3.00e- 37
+    ## 122 Mercury (programming language)                          en    3.71e- 37
+    ## 123 Rebol                                                   en    1.11e- 35
+    ## 124 Fortran                                                 de    1.39e- 35
+    ## 125 SQL                                                     en    2.06e- 35
+    ## 126 J (Programmiersprache)                                  de    6.56e- 35
+    ## 127 Tcl                                                     de    8.88e- 35
+    ## 128 Strongtalk                                              de    5.48e- 34
+    ## 129 MetaPost                                                de    2.32e- 33
+    ## 130 Mercury (Programmiersprache)                            de    4.43e- 33
+    ## 131 Tcl                                                     en    5.86e- 33
+    ## 132 Boo (Programmiersprache)                                de    8.04e- 33
+    ## 133 SPARQL                                                  de    9.08e- 33
+    ## 134 Prolog                                                  en    2.08e- 32
+    ## 135 CycL                                                    de    3.51e- 32
+    ## 136 SuperCollider                                           en    6.30e- 32
+    ## 137 Modelica                                                en    6.71e- 32
+    ## 138 Web Ontology Language                                   de    1.44e- 31
+    ## 139 Python (Programmiersprache)                             de    3.45e- 31
+    ## 140 APL (programming language)                              en    4.21e- 31
+    ## 141 Perl                                                    en    5.62e- 31
+    ## 142 Lisp                                                    de    1.17e- 30
+    ## 143 SPARQL                                                  en    1.87e- 30
+    ## 144 METAFONT                                                de    2.68e- 30
+    ## 145 Self (Programmiersprache)                               de    1.04e- 29
+    ## 146 PEARL (programming language)                            en    2.71e- 29
+    ## 147 Modelica                                                de    4.20e- 29
+    ## 148 COBOL                                                   en    7.43e- 28
+    ## 149 Euler (Programmiersprache)                              de    1.18e- 27
+    ## 150 SuperCollider                                           de    1.43e- 27
+    ## 151 Curl (Programmiersprache)                               de    1.64e- 27
+    ## 152 MUMPS                                                   en    3.05e- 27
+    ## 153 Matlab                                                  de    1.08e- 26
+    ## 154 ML (programming language)                               en    2.54e- 26
+    ## 155 Fortran                                                 en    2.90e- 26
+    ## 156 Web Ontology Language                                   en    5.24e- 26
+    ## 157 Lisp (programming language)                             en    7.16e- 26
+    ## 158 Squeak                                                  de    1.05e- 25
+    ## 159 Clean (Programmiersprache)                              de    1.29e- 25
+    ## 160 Lout (software)                                         en    1.95e- 25
+    ## 161 Go (programming language)                               en    3.59e- 25
+    ## 162 Prolog (Programmiersprache)                             de    5.03e- 25
+    ## 163 Metafont                                                en    9.49e- 25
+    ## 164 REBOL                                                   de    1.91e- 24
+    ## 165 Datalog                                                 en    2.90e- 23
+    ## 166 MUMPS                                                   de    3.96e- 23
+    ## 167 Go (Programmiersprache)                                 de    6.46e- 23
+    ## 168 Logo (Programmiersprache)                               de    2.10e- 22
+    ## 169 Ada (programming language)                              en    3.35e- 21
+    ## 170 Joy (programming language)                              en    1.36e- 20
+    ## 171 D (Programmiersprache)                                  de    1.99e- 20
+    ## 172 APL (Programmiersprache)                                de    2.49e- 20
+    ## 173 NewLISP                                                 de    1.01e- 19
+    ## 174 Maple (software)                                        en    1.21e- 19
+    ## 175 R (programming language)                                en    1.21e- 19
+    ## 176 Datalog                                                 de    8.95e- 19
+    ## 177 Paul Graham (computer programmer)                       en    4.00e- 18
+    ## 178 ISWIM                                                   de    1.97e- 17
+    ## 179 SQL                                                     de    2.08e- 17
+    ## 180 Coq                                                     en    4.76e- 16
+    ## 181 Smalltalk                                               en    6.89e- 16
+    ## 182 Logo (programming language)                             en    2.71e- 13
+    ## 183 Oz (programming language)                               en    3.82e- 13
+    ## 184 Joy (Programmiersprache)                                de    5.71e- 13
+    ## 185 Paul Graham                                             de    1.22e-  9
+    ## 186 R (Programmiersprache)                                  de    5.61e-  9
+    ## 187 Musterhaus Am Horn                                      de    1.00e+  0
+    ## 188 Fagus-Werk                                              de    1.00e+  0
+    ## 189 Grube Messel                                            de    1.00e+  0
+    ## 190 Kulturlandschaft Dresdner Elbtal                        de    1.00e+  0
+    ## 191 Bauhaus                                                 de    1.00e+  0
+    ## 192 Wattenmeer (Nordsee)                                    de    1.00e+  0
+    ## 193 Nationalpark Schleswig-Holsteinisches Wattenmeer        de    1.00e+  0
+    ## 194 Prehistoric pile dwellings around the Alps              en    1.00e+  0
+    ## 195 Oberharzer Wasserregal                                  de    1.00e+  0
+    ## 196 Großsiedlung Siemensstadt                               de    1.00e+  0
+    ## 197 Wadden Sea                                              en    1.00e+  0
+    ## 198 Primeval Beech Forests of the Carpathians and the Anci… en    1.00e+  0
+    ## 199 Limes (Grenzwall)                                       de    1.00e+  0
+    ## 200 Wismar                                                  de    1.00e+  0
+    ## 201 Bamberg                                                 de    1.00e+  0
+    ## 202 Trier                                                   de    1.00e+  0
+    ## 203 Nationalpark Niedersächsisches Wattenmeer               de    1.00e+  0
+    ## 204 Wittenberg                                              en    1.00e+  0
+    ## 205 Goslar                                                  de    1.00e+  0
+    ## 206 Margravial Opera House                                  en    1.00e+  0
+    ## 207 Weimar                                                  de    1.00e+  0
+    ## 208 Bremer Rathaus                                          de    1.00e+  0
+    ## 209 Würzburg Residence                                      en    1.00e+  0
+    ## 210 Glienicke Palace                                        en    1.00e+  0
+    ## 211 New Garden, Potsdam                                     en    1.00e+  0
+    ## 212 Upper Harz Water Regale                                 en    1.00e+  0
+    ## 213 Kloster Maulbronn                                       de    1.00e+  0
+    ## 214 Martin Luther's Birth House                             en    1.00e+  0
+    ## 215 Speyer Cathedral                                        en    1.00e+  0
+    ## 216 Konstantinbasilika                                      de    1.00e+  0
+    ## 217 Welterbe in Deutschland                                 de    1.00e+  0
+    ## 218 Barbara Baths                                           en    1.00e+  0
+    ## 219 Lübeck                                                  de    1.00e+  0
+    ## 220 Herkules (Kassel)                                       de    1.00e+  0
+    ## 221 Lübeck                                                  en    1.00e+  0
+    ## 222 Dessau-Wörlitz Garden Realm                             en    1.00e+  0
+    ## 223 Sanssouci                                               de    1.00e+  0
+    ## 224 Klassisches Weimar                                      de    1.00e+  0
+    ## 225 Kaiserthermen (Trier)                                   de    1.00e+  0
+    ## 226 Rammelsberg                                             en    1.00e+  0
+    ## 227 Ingelheimer Kaiserpfalz                                 de    1.00e+  0
+    ## 228 Zollverein Coal Mine Industrial Complex                 en    1.00e+  0
+    ## 229 Heilandskirche am Port von Sacrow                       de    1.00e+  0
+    ## 230 Porta Nigra                                             en    1.00e+  0
+    ## 231 Pfaueninsel                                             en    1.00e+  0
+    ## 232 Hildesheimer Dom                                        de    1.00e+  0
+    ## 233 Stadtkirche Lutherstadt Wittenberg                      de    1.00e+  0
+    ## 234 Dessau-Wörlitzer Gartenreich                            de    1.00e+  0
+    ## 235 Hercules monument (Kassel)                              en    1.00e+  0
+    ## 236 Prähistorische Pfahlbauten um die Alpen                 de    1.00e+  0
+    ## 237 Museum Island                                           en    1.00e+  0
+    ## 238 Aula Palatina                                           en    1.00e+  0
+    ## 239 Welterbe Römische Baudenkmäler, Dom und Liebfrauenkirc… de    1.00e+  0
+    ## 240 Zeche Zollverein                                        de    1.00e+  0
+    ## 241 Bergpark Wilhelmshöhe                                   en    1.00e+  0
+    ## 242 Melanchthonhaus (Wittenberg)                            en    1.00e+  0
+    ## 243 Reichenau (Insel)                                       de    1.00e+  0
+    ## 244 Bauhaus Dessau Foundation                               en    1.00e+  0
+    ## 245 Stiftung Bauhaus Dessau                                 de    1.00e+  0
+    ## 246 Goslar                                                  en    1.00e+  0
+    ## 247 Aachen Cathedral Treasury                               en    1.00e+  0
+    ## 248 Kloster Lorsch                                          de    1.00e+  0
+    ## 249 Trier Amphitheater                                      en    1.00e+  0
+    ## 250 Eibingen Abbey                                          en    1.00e+  0
+    ## 251 Roman Monuments, Cathedral of St. Peter and Church of … en    1.00e+  0
+    ## 252 Lutherstadt Eisleben                                    de    1.00e+  0
+    ## 253 Porta Nigra                                             de    1.00e+  0
+    ## 254 Trierer Dom                                             de    1.00e+  0
+    ## 255 Reichenau Island                                        en    1.00e+  0
+    ## 256 Trier                                                   en    1.00e+  0
+    ## 257 Lower Saxon Wadden Sea National Park                    en    1.00e+  0
+    ## 258 Dresden Elbe Valley                                     en    1.00e+  0
+    ## 259 Trier Imperial Baths                                    en    1.00e+  0
+    ## 260 Wartburg                                                en    1.00e+  0
+    ## 261 Bremen City Hall                                        en    1.00e+  0
+    ## 262 Speyerer Dom                                            de    1.00e+  0
+    ## 263 Holstentor                                              de    1.00e+  0
+    ## 264 Eisleben                                                en    1.00e+  0
+    ## 265 Neuer Garten Potsdam                                    de    1.00e+  0
+    ## 266 Regensburg                                              de    1.00e+  0
+    ## 267 Palaces and Parks of Potsdam and Berlin                 en    1.00e+  0
+    ## 268 Martin Luther's Death House                             en    1.00e+  0
+    ## 269 Quedlinburg                                             en    1.00e+  0
+    ## 270 Messel pit                                              en    1.00e+  0
+    ## 271 Lorch (Rheingau)                                        de    1.00e+  0
+    ## 272 Berlin Modernism Housing Estates                        en    1.00e+  0
+    ## 273 Bauhaus                                                 en    1.00e+  0
+    ## 274 Cologne Cathedral                                       en    1.00e+  0
+    ## 275 List of World Heritage Sites in Germany                 en    1.00e+  0
+    ## 276 Museumsinsel (Berlin)                                   de    1.00e+  0
+    ## 277 Limes                                                   en    1.00e+  0
+    ## 278 Wieskirche                                              de    1.00e+  0
+    ## 279 Augusteum und Lutherhaus Wittenberg                     de    1.00e+  0
+    ## 280 Imperial Palace of Goslar                               en    1.00e+  0
+    ## 281 Lutherstadt Wittenberg                                  de    1.00e+  0
+    ## 282 Schlösser und Gärten von Potsdam und Berlin             de    1.00e+  0
+    ## 283 Fürst-Pückler-Park Bad Muskau                           de    1.00e+  0
+    ## 284 Weimar                                                  en    1.00e+  0
+    ## 285 Stadtkirche Wittenberg                                  en    1.00e+  0
+    ## 286 Bremen Roland                                           en    1.00e+  0
+    ## 287 Buchenurwälder in den Karpaten und alte Buchenwälder i… de    1.00e+  0
+    ## 288 Kaiserpfalz Goslar                                      de    1.00e+  0
+    ## 289 Stralsund                                               de    1.00e+  0
+    ## 290 Lorsch Abbey                                            en    1.00e+  0
+    ## 291 Babelsberg Palace                                       en    1.00e+  0
+    ## 292 Pfaueninsel                                             de    1.00e+  0
+    ## 293 Obergermanisch-Raetischer Limes#Der Limes heute         de    1.00e+  0
+    ## 294 Abtei St. Hildegard (Rüdesheim am Rhein)                de    1.00e+  0
+    ## 295 Haus am Horn                                            en    1.00e+  0
+    ## 296 Rüdesheim am Rhein                                      de    1.00e+  0
+    ## 297 Cathedral of Trier                                      en    1.00e+  0
+    ## 298 Schlösser Augustusburg und Falkenlust                   de    1.00e+  0
+    ## 299 Wartburg                                                de    1.00e+  0
+    ## 300 Igel Column                                             en    1.00e+  0
+    ## 301 Quedlinburg                                             de    1.00e+  0
+    ## 302 Babelsberg                                              de    1.00e+  0
+    ## 303 Igeler Säule                                            de    1.00e+  0
+    ## 304 St. Michael's Church, Hildesheim                        en    1.00e+  0
+    ## 305 Würzburger Residenz                                     de    1.00e+  0
+    ## 306 Liebfrauenkirche (Trier)                                de    1.00e+  0
+    ## 307 Stift Corvey                                            de    1.00e+  0
+    ## 308 Wieskirche                                              en    1.00e+  0
+    ## 309 Classical Weimar (World Heritage Site)                  en    1.00e+  0
+    ## 310 Sanssouci                                               en    1.00e+  0
+    ## 311 Kölner Dom                                              de    1.00e+  0
+    ## 312 Schloss Glienicke                                       de    1.00e+  0
+    ## 313 Liebfrauenkirche, Trier                                 en    1.00e+  0
+    ## 314 St. Michael (Hildesheim)                                de    1.00e+  0
+    ## 315 Welterbe Kulturlandschaft Oberes Mittelrheintal         de    1.00e+  0
+    ## 316 Bremer Roland                                           de    1.00e+  0
+    ## 317 Hildesheim Cathedral                                    en    1.00e+  0
+    ## 318 Limes Germanicus                                        en    1.00e+  0
+    ## 319 Siedlungen der Berliner Moderne                         de    1.00e+  0
+    ## 320 Martin Luthers Sterbehaus                               de    1.00e+  0
+    ## 321 Rhine Gorge                                             en    1.00e+  0
+    ## 322 Martin Luthers Geburtshaus                              de    1.00e+  0
+    ## 323 Melanchthonhaus Wittenberg                              de    1.00e+  0
+    ## 324 Regensburg                                              en    1.00e+  0
+    ## 325 Aachener Dom                                            de    1.00e+  0
+    ## 326 Fagus Factory                                           en    1.00e+  0
+    ## 327 Lutherhaus                                              en    1.00e+  0
+    ## 328 Augustusburg and Falkenlust Palaces, Brühl              en    1.00e+  0
+    ## 329 Hufeisensiedlung                                        de    1.00e+  0
+    ## 330 Völklinger Hütte                                        de    1.00e+  0
+    ## 331 Aachen Cathedral                                        en    1.00e+  0
+    ## 332 Schleswig-Holstein Wadden Sea National Park             en    1.00e+  0
+    ## 333 Markgräfliches Opernhaus                                de    1.00e+  0
+    ## 334 Schloss Babelsberg                                      de    1.00e+  0
+    ## 335 Hufeisensiedlung                                        en    1.00e+  0
+    ## 336 Amphitheater (Trier)                                    de    1.00e+  0
+    ## 337 Bergpark Wilhelmshöhe                                   de    1.00e+  0
+    ## 338 Barbarathermen                                          de    1.00e+  0
+    ## 339 Church of the Redeemer, Sacrow                          en    1.00e+  0
+    ## 340 Holstentor                                              en    1.00e+  0
+    ## 341 Aachener Domschatzkammer                                de    1.00e+  0
+    ## 342 Stralsund                                               en    1.00e+  0
+
+# Aligned fastText
+
+## Step 1: Download word embeddings
+
+Download and preprocess fastText word embeddings from Facebook. Make
+sure you have at least 5G of disk space and a reasonably amount of RAM.
+It took around 20 minutes on my machine.
+
+``` r
+get_ft("en")
+get_ft("de")
+```
+
+## Step 1: Read the downloaded word embeddings
+
+``` r
+emb <- read_ft(c("en", "de"))
+```
+
+## Step 2: Create corpus
+
+Create a multilingual corpus
+
+``` r
+wiki_corpus <- create_corpus(wiki$content, wiki$lang)
+```
+
+## Step 2: Create bag-of-embeddings dfm
+
+Create a multilingual dfm
+
+``` r
+wiki_dfm <- transform_dfm_boe(wiki_corpus, emb)
+```
+
+    ## 
+     Progress: ─                                                           100%
+     Progress: ──                                                          100%
+     Progress: ───                                                         100%
+     Progress: ─────                                                       100%
+     Progress: ──────                                                      100%
+     Progress: ───────                                                     100%
+     Progress: ───────                                                     100%
+     Progress: ───────                                                     100%
+     Progress: ───────                                                     100%
+     Progress: ─────────                                                   100%
+     Progress: ──────────                                                  100%
+     Progress: ───────────                                                 100%
+     Progress: ─────────────                                               100%
+     Progress: ──────────────                                              100%
+     Progress: ───────────────                                             100%
+     Progress: ────────────────                                            100%
+     Progress: ─────────────────                                           100%
+     Progress: ───────────────────                                         100%
+     Progress: ────────────────────                                        100%
+     Progress: ─────────────────────                                       100%
+     Progress: ──────────────────────                                      100%
+     Progress: ───────────────────────                                     100%
+     Progress: ────────────────────────                                    100%
+     Progress: ──────────────────────────                                  100%
+     Progress: ───────────────────────────                                 100%
+     Progress: ───────────────────────────                                 100%
+     Progress: ────────────────────────────                                100%
+     Progress: ─────────────────────────────                               100%
+     Progress: ─────────────────────────────                               100%
+     Progress: ──────────────────────────────                              100%
+     Progress: ──────────────────────────────                              100%
+     Progress: ──────────────────────────────                              100%
+     Progress: ───────────────────────────────                             100%
+     Progress: ───────────────────────────────                             100%
+     Progress: ────────────────────────────────                            100%
+     Progress: ────────────────────────────────                            100%
+     Progress: ─────────────────────────────────                           100%
+     Progress: ─────────────────────────────────                           100%
+     Progress: ──────────────────────────────────                          100%
+     Progress: ───────────────────────────────────                         100%
+     Progress: ────────────────────────────────────                        100%
+     Progress: ─────────────────────────────────────                       100%
+     Progress: ──────────────────────────────────────                      100%
+     Progress: ──────────────────────────────────────                      100%
+     Progress: ───────────────────────────────────────                     100%
+     Progress: ────────────────────────────────────────                    100%
+     Progress: ─────────────────────────────────────────                   100%
+     Progress: ──────────────────────────────────────────                  100%
+     Progress: ───────────────────────────────────────────                 100%
+     Progress: ────────────────────────────────────────────                100%
+     Progress: ─────────────────────────────────────────────               100%
+     Progress: ──────────────────────────────────────────────              100%
+     Progress: ───────────────────────────────────────────────             100%
+     Progress: ────────────────────────────────────────────────            100%
+     Progress: ─────────────────────────────────────────────────           100%
+     Progress: ───────────────────────────────────────────────────         100%
+     Progress: ────────────────────────────────────────────────────        100%
+     Progress: ─────────────────────────────────────────────────────       100%
+     Progress: ──────────────────────────────────────────────────────      100%
+     Progress: ───────────────────────────────────────────────────────     100%
+     Progress: ────────────────────────────────────────────────────────    100%
+     Progress: ─────────────────────────────────────────────────────────   100%
+     Progress: ──────────────────────────────────────────────────────────  100%
+     Progress: ──────────────────────────────────────────────────────────  100%
+     Progress: ─────────────────────────────────────────────────────────── 100%
+
+``` r
+wiki_dfm
+```
+
+    ## dfm with a dimension of 342 x 300 and de/en language(s).
+    ## 
+    ## Aligned word embeddings: fasttext
+
+## Step 3: Filter dfm
+
+Filter the dfm for language differences
+
+``` r
+wiki_dfm_filtered <- filter_dfm(wiki_dfm, k = 2)
+wiki_dfm_filtered
+```
+
+    ## dfm with a dimension of 342 x 5 and de/en language(s).
+    ## Filtered with k =  2
+    ## Aligned word embeddings: fasttext
+
+## Step 4: Estimate GMM
+
+Estimate a Guassian Mixture Model
+
+``` r
+wiki_gmm <- calculate_gmm(wiki_dfm_filtered, seed = 46709394)
+wiki_gmm
+```
+
+    ## 2-topic rectr model trained with a dfm with a dimension of 342 x 5 and de/en language(s).
+    ## Filtered with k =  2
+    ## Aligned word embeddings: fasttext
 
 The document-topic matrix is available in `wiki_gmm$theta`.
 
@@ -575,24 +1005,25 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] dplyr_0.8.5  tibble_3.0.1 rectr_0.0.7 
+    ## [1] dplyr_0.8.5  tibble_3.0.1 rectr_0.1.2 
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] Rcpp_1.0.4.6       RSpectra_0.16-0    quanteda_2.0.0    
-    ##  [4] pillar_1.4.4       compiler_3.6.2     stopwords_1.0     
-    ##  [7] tools_3.6.2        digest_0.6.25      evaluate_0.14     
-    ## [10] lifecycle_0.2.0    gtable_0.3.0       lattice_0.20-38   
-    ## [13] pkgconfig_2.0.3    rlang_0.4.6        fastmatch_1.1-0   
-    ## [16] Matrix_1.2-18      cli_2.0.2          parallel_3.6.2    
-    ## [19] yaml_2.2.1         mvtnorm_1.0-10     xfun_0.7          
-    ## [22] furrr_0.1.0        stringr_1.4.0      knitr_1.23        
-    ## [25] globals_0.12.4     vctrs_0.2.4        nnet_7.3-12       
-    ## [28] stats4_3.6.2       grid_3.6.2         tidyselect_1.0.0  
-    ## [31] glue_1.4.0         data.table_1.12.8  listenv_0.7.0     
-    ## [34] R6_2.4.1           flexmix_2.3-15     fansi_0.4.1       
-    ## [37] rmarkdown_1.12     purrr_0.3.3        ggplot2_3.3.0     
-    ## [40] magrittr_1.5       modeltools_0.2-22  codetools_0.2-16  
-    ## [43] scales_1.1.0       ellipsis_0.3.0     htmltools_0.4.0   
-    ## [46] assertthat_0.2.1   future_1.14.0      colorspace_1.4-1  
-    ## [49] utf8_1.1.4         stringi_1.4.6      RcppParallel_4.4.4
-    ## [52] munsell_0.5.0      crayon_1.3.4
+    ##  [1] reticulate_1.16    modeltools_0.2-22  tidyselect_1.0.0  
+    ##  [4] xfun_0.7           listenv_0.7.0      purrr_0.3.3       
+    ##  [7] lattice_0.20-38    colorspace_1.4-1   vctrs_0.2.4       
+    ## [10] htmltools_0.4.0    SnowballC_0.6.0    stats4_3.6.2      
+    ## [13] yaml_2.2.1         utf8_1.1.4         rlang_0.4.6       
+    ## [16] pillar_1.4.4       glue_1.4.1         lifecycle_0.2.0   
+    ## [19] stringr_1.4.0      munsell_0.5.0      gtable_0.3.0      
+    ## [22] future_1.14.0      mvtnorm_1.0-10     codetools_0.2-16  
+    ## [25] evaluate_0.14      knitr_1.23         parallel_3.6.2    
+    ## [28] flexmix_2.3-15     fansi_0.4.1        furrr_0.1.0       
+    ## [31] tokenizers_0.2.1   Rcpp_1.0.4.6       scales_1.1.0      
+    ## [34] RcppParallel_4.4.4 jsonlite_1.6.1     RSpectra_0.16-0   
+    ## [37] fastmatch_1.1-0    stopwords_1.0      ggplot2_3.3.0     
+    ## [40] digest_0.6.25      stringi_1.4.6      quanteda_2.0.0    
+    ## [43] grid_3.6.2         cli_2.0.2          tools_3.6.2       
+    ## [46] magrittr_1.5       crayon_1.3.4       pkgconfig_2.0.3   
+    ## [49] ellipsis_0.3.0     Matrix_1.2-18      data.table_1.12.8 
+    ## [52] assertthat_0.2.1   rmarkdown_1.12     R6_2.4.1          
+    ## [55] globals_0.12.4     nnet_7.3-12        compiler_3.6.2

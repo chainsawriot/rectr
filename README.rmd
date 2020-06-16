@@ -19,22 +19,25 @@ require(dplyr)
 wiki
 ```
 
-## Download word embeddings
+Currently, this package supports [aligned fastText](https://github.com/facebookresearch/fastText/tree/master/alignment) from Facebook Research and [Multilingual BERT (MBERT)](https://github.com/google-research/bert/blob/master/multilingual.md) from Google Research. For easier integration, the PyTorch version of MBERT from [Transformers](https://github.com/huggingface/transformers) is used.
 
-Download and preprocess fastText word embeddings from Facebook. Make sure you are using a Unix machine, e.g. Linux or Mac, have at least 5G of disk space and a reasonably amount of RAM. It took around 20 minutes on my machine.
+# Multilingual BERT
 
-```{r, eval = FALSE}
-get_ft("en")
-get_ft("de")
-```
-
-Read the downloaded word embeddings.
+## Step 1: Setup your conda environment
 
 ```{r}
-emb <- read_ft(c("en", "de"))
+## setup a conda environment, default name: rectr_condaenv
+mbert_env_setup()
 ```
 
-## Create corpus
+## Step 1: Download MBERT model
+
+```{r}
+## default to your current directory
+download_mbert(noise = TRUE)
+```
+
+## Step 2: Create corpus
 
 Create a multilingual corpus
 
@@ -42,25 +45,26 @@ Create a multilingual corpus
 wiki_corpus <- create_corpus(wiki$content, wiki$lang)
 ```
 
-## Create bag-of-embeddings dfm
+## Step 2: Create bag-of-embeddings dfm
 
 Create a multilingual dfm
 
 ```{r}
-wiki_dfm <- transform_dfm_boe(wiki_corpus, emb)
+## default
+wiki_dfm <- transform_dfm_boe(wiki_corpus, noise = TRUE)
 wiki_dfm
 ```
 
-## Filter dfm
+## Step 3: Filter dfm
 
 Filter the dfm for language differences
 
 ```{r}
-wiki_dfm_filtered <- filter_dfm(wiki_dfm, wiki_corpus, k = 2)
+wiki_dfm_filtered <- filter_dfm(wiki_dfm, k = 2)
 wiki_dfm_filtered
 ```
 
-## Estimate GMM
+## Step 4: Estimate GMM
 
 Estimate a Guassian Mixture Model
 
@@ -76,6 +80,68 @@ Rank the articles according to the theta1.
 ```{r}
 wiki %>% mutate(theta1 = wiki_gmm$theta[,1]) %>% arrange(theta1) %>% select(title, lang, theta1) %>% print(n = 400)
 ```
+
+# Aligned fastText
+
+## Step 1: Download word embeddings
+
+Download and preprocess fastText word embeddings from Facebook. Make sure you have at least 5G of disk space and a reasonably amount of RAM. It took around 20 minutes on my machine.
+
+```{r, eval = FALSE}
+get_ft("en")
+get_ft("de")
+```
+
+## Step 1: Read the downloaded word embeddings
+
+```{r}
+emb <- read_ft(c("en", "de"))
+```
+
+## Step 2: Create corpus
+
+Create a multilingual corpus
+
+```{r}
+wiki_corpus <- create_corpus(wiki$content, wiki$lang)
+```
+
+## Step 2: Create bag-of-embeddings dfm
+
+Create a multilingual dfm
+
+```{r}
+wiki_dfm <- transform_dfm_boe(wiki_corpus, emb)
+wiki_dfm
+```
+
+## Step 3: Filter dfm
+
+Filter the dfm for language differences
+
+```{r}
+wiki_dfm_filtered <- filter_dfm(wiki_dfm, k = 2)
+wiki_dfm_filtered
+```
+
+## Step 4: Estimate GMM
+
+Estimate a Guassian Mixture Model
+
+```{r}
+wiki_gmm <- calculate_gmm(wiki_dfm_filtered, seed = 46709394)
+wiki_gmm
+```
+
+The document-topic matrix is available in `wiki_gmm$theta`.
+
+Rank the articles according to the theta1.
+
+```{r}
+wiki %>% mutate(theta1 = wiki_gmm$theta[,1]) %>% arrange(theta1) %>% select(title, lang, theta1) %>% print(n = 400)
+```
+
+
 
 SessionInfo
 
