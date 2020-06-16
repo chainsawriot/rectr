@@ -61,6 +61,7 @@ Fixing coding
 ```{r}
 require(rectr)
 paris_human_coding[102,3] <- 1939
+paris_human_coding[102,5] <- 1
 rio::export(paris_human_coding, "paris_human_coding.csv")
 usethis::use_data(paris_human_coding, overwrite = TRUE)
 ```
@@ -84,7 +85,7 @@ paris_corpus <- paris_corpus[-excluded_id]
 paris_dfm <- transform_dfm_boe(paris_corpus, emb)
 saveRDS(paris_dfm, "paris_dfm.RDS")
 
-paris_dfm_bert <- transform_dfm_boe(paris_corpus, mode = "bert", noise = TRUE)
+paris_dfm_bert <- transform_dfm_boe(paris_corpus, mode = "bert", noise = TRUE, path = "./")
 saveRDS(paris_dfm_bert, "paris_dfm_bert.RDS")
 ```
 
@@ -246,7 +247,7 @@ Aligned fastText
 require(rectr)
 require(tidyverse)
 require(quanteda)
-###paris_corpus
+paris_corpus
 ```
 
 ```{r}
@@ -276,7 +277,7 @@ paris_dfm_bert_filtered
 ```
 
 ```{r}
-paris_gmm_bert <- calculate_gmm(paris_dfm_bert_filtered)
+paris_gmm_bert <- calculate_gmm(paris_dfm_bert_filtered, seed = 43)
 paris_gmm_bert
 ```
 
@@ -287,15 +288,19 @@ get_sample <- function(i, paris_corpus, theta, threshold = 0.8, replace = FALSE)
     tibble(hl = docvars(paris_corpus, "headline"), lang = docvars(paris_corpus, "lang"), prob = theta[,i]) %>% group_by(lang) %>% filter(prob > threshold) %>% sample_n(size = 5, weight = prob, replace = replace) %>% select(hl, lang, prob) %>% ungroup %>% arrange(lang, prob) %>% mutate(topic = i)
 }
 
+get_headline <- function(paris_gmm) {
+    map_dfr(seq_len(ncol(paris_gmm$theta)), get_sample, paris_gmm$dfm$corpus, theta = paris_gmm$theta) %>% unique %>% print(n = 100)
+}
+
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = paris_gmm$theta) %>% unique %>% print(n = 100)
+get_headline(paris_gmm)
 ```
 
 ## Appendix I: mb-rectr
 
 ```{r, results = 'asis'}
 set.seed(42)
-map_dfr(1:4, get_sample, paris_corpus, theta = paris_gmm_bert$theta) %>% unique %>% print(n = 100) %>% knitr::kable()
+get_headline(paris_gmm_bert)
 ```
 
 
@@ -307,7 +312,7 @@ require(stm)
 set.seed(42)
 translated_stm <- stm(paris_tdtm_dfm$documents, paris_tdtm_dfm$vocab, K = 5)
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = translated_stm$theta, replace = TRUE) %>% unique %>% print(n = 100) %>% knitr::kable()
+map_dfr(1:5, get_sample, paris_corpus, theta = translated_stm$theta, replace = TRUE) %>% unique %>% print(n = 100)
 ```
 
 ## Appendix IV: ft-stm
@@ -322,7 +327,7 @@ set.seed(42)
 ft_stm  <- stm(paris_ft_dfm$documents, paris_ft_dfm$vocab, K = 5)
 
 set.seed(42)
-map_dfr(1:5, get_sample, paris_corpus, theta = ft_stm$theta, replace = TRUE) %>% unique %>% print(n = 100) %>% knitr::kable()
+map_dfr(1:5, get_sample, paris_corpus, theta = ft_stm$theta, replace = TRUE) %>% unique %>% print(n = 100)
 ```
 
 # Human coding
@@ -342,11 +347,15 @@ irr::kripp.alpha(matrix(c(paris_human_coding$coder1, paris_human_coding$coder2),
 
 ```{r}
 require(lsa)
-cal_sim <- function(id1, id2, thetax) {
-    cosine(thetax[id1,], thetax[id2,])[1,1]
+
+id_row <- function(id, corpus) {
+    which(id == docvars(corpus, "id"))
+}
+cal_sim <- function(id1, id2, thetax, corpus) {
+    cosine(thetax[id_row(id1, corpus),], thetax[id_row(id2, corpus),])[1,1]
 }
 
-paris_human_coding %>% mutate(rectr_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = paris_gmm$theta), bert_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = paris_gmm_bert$theta), tstm_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = translated_stm$theta), ft_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = ft_stm$theta) , human = (coder1 + coder2) / 2) -> paris_topic_sim
+paris_human_coding %>% mutate(rectr_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = paris_gmm$theta, corpus = paris_corpus), bert_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = paris_gmm_bert$theta, corpus = paris_corpus), tstm_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = translated_stm$theta, corpus = paris_corpus), ft_topicsim = map2_dbl(a1id, a2id, cal_sim, thetax = ft_stm$theta, corpus = paris_corpus) , human = (coder1 + coder2) / 2) -> paris_topic_sim
 ```
 
 ```{r}
@@ -390,7 +399,7 @@ map2_dfr(list(paris_gmm, paris_gmm_bert, translated_stm, ft_stm), c("af-rectr", 
 
 ```{r}
 require(lubridate)
-tibble(theta = c(paris_gmm$theta[,1], paris_gmm$theta[,2], paris_gmm$theta[,3], paris_gmm$theta[,4], paris_gmm$theta[,5], translated_stm$theta[,1], translated_stm$theta[,2], translated_stm$theta[,3], translated_stm$theta[,4], translated_stm$theta[,5]), lang = rep(docvars(paris_corpus, "lang"), 10), pubdate = rep(docvars(paris_corpus, "pubdate"), 10), topic = c(sort(rep(1:5, length(paris_corpus))), sort(rep(1:5, length(paris_corpus)))), method = c(rep("af-rectr", 16955), rep("tdtm-stm", 16955))) %>% mutate(pubdate = lubridate::dmy(pubdate)) %>% group_by(topic, lang, pubdate, method) %>% summarise(mean_theta = mean(theta)) %>% ggplot(aes(x = pubdate, y = mean_theta, color = lang)) + geom_line() + facet_grid(topic ~ method) + ylab(expression(theta[t])) + xlab("Date") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+tibble(theta = c(paris_gmm$theta[,1], paris_gmm$theta[,2], paris_gmm$theta[,3], paris_gmm$theta[,4], paris_gmm$theta[,5], translated_stm$theta[,1], translated_stm$theta[,2], translated_stm$theta[,3], translated_stm$theta[,4], translated_stm$theta[,5]), lang = rep(docvars(paris_corpus, "lang"), 10), pubdate = rep(docvars(paris_corpus, "pubdate"), 10), topic = c(sort(rep(1:5, length(paris_corpus))), sort(rep(1:5, length(paris_corpus)))), method = c(rep("af-rectr", 3388*5), rep("tdtm-stm", 3388*5))) %>% mutate(pubdate = lubridate::dmy(pubdate)) %>% group_by(topic, lang, pubdate, method) %>% summarise(mean_theta = mean(theta)) %>% ggplot(aes(x = pubdate, y = mean_theta, color = lang)) + geom_line() + facet_grid(topic ~ method) + ylab(expression(theta[t])) + xlab("Date") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 ```{r}

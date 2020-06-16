@@ -91,27 +91,6 @@ create_corpus <- function(text_content, lang) {
     bag_of_embeddings %>% dplyr::summarise_at(dplyr::vars(X2:X301), mean, na.rm = TRUE)
 }
 
-.bert_cleanse <- function(text, lang) {
-    quanteda::tokens(text) %>% tokens_remove(stopwords(lang)) %>% paste(collapse = " ")
-}
-
-.bert <- function(content, lang, noise = FALSE, remove_stopwords = TRUE, max_length = 512L, bert_sentence_tokenization = TRUE) {
-    if (remove_stopwords) {
-        content <- purrr::map2_chr(content, lang, .bert_cleanse)
-    }
-    if (bert_sentence_tokenization) {
-        sentences <- tokenizers::tokenize_sentences(content)
-    } else {
-        sentences <- purrr::map(content, ~ list(.))
-    }
-    ### loading Python
-    reticulate::use_miniconda("miniconda3", required = TRUE)
-    reticulate::source_python(system.file("python", "bert.py", package = 'rectr'))
-    list_of_embedding <- purrr::map(sentences, bert_sentence, max_length = max_length, noise = noise)
-    dfm_bert <- do.call(rbind, list_of_embedding)
-    return(dfm_bert)
-}
-
 #' Generate a document-feature matrix using word embeddings
 #'
 #' This function generates document-feature matrix (dfm) from a multilingual corpus.
@@ -124,14 +103,14 @@ create_corpus <- function(text_content, lang) {
 #' @return a rectr_dfm object
 #' @importFrom magrittr %>%
 #' @export
-transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert", noise = FALSE, remove_stopwords = TRUE, bert_sentence_tokenization = TRUE) {
+transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert", noise = FALSE, remove_stopwords = TRUE, bert_sentence_tokenization = TRUE, envname = "rectr_condaenv", path = "./") {
     if (mode == "fasttext" | !is.null(emb)) {
         mode <- "fasttext"
         future:::plan(future::multiprocess)
         furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress, remove_stopwords = remove_stopwords) %>% as.matrix -> real_dfm
     } else if (mode == "bert"){
         mode <- "bert"
-        real_dfm <- .bert(content = as.vector(corpus), lang =  quanteda::docvars(corpus, "lang"), noise = noise, remove_stopwords = remove_stopwords, bert_sentence_tokenization = bert_sentence_tokenization)
+        real_dfm <- .bert(content = as.vector(corpus), lang =  quanteda::docvars(corpus, "lang"), noise = noise, remove_stopwords = remove_stopwords, bert_sentence_tokenization = bert_sentence_tokenization, envname = envname, path = path)
     } else {
         stop("Argument 'mode' must be 'bert' or 'fasttext'.")
     }
@@ -223,6 +202,9 @@ calculate_gmm <- function(input_dfm, seed = NULL) {
     res$dfm <- input_dfm
     res$theta <- flexmix::posterior(gmm_model)
     res$k <- input_dfm$k
+    if (ncol(res$theta) < res$k) {
+        warning(paste0("Cannot converge with a model with k = ", res$k, ".  Actual k = ", ncol(res$theta)))
+    }
     res$seed <- seed
     class(res) <- append(class(res), "rectr_model")
     return(res)
@@ -237,5 +219,8 @@ calculate_gmm <- function(input_dfm, seed = NULL) {
 print.rectr_model <- function(rectr_model) {
     cat(paste0(rectr_model$k, "-topic rectr model trained with a "))
     print(rectr_model$dfm)
+    if (ncol(rectr_model$theta) < rectr_model$k) {
+        cat(paste0("Defacto k = ", ncol(rectr_model$theta), "\n"))
+    }
 }
 

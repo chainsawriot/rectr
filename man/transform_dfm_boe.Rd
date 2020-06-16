@@ -11,7 +11,9 @@ transform_dfm_boe(
   mode = "bert",
   noise = FALSE,
   remove_stopwords = TRUE,
-  bert_sentence_tokenization = TRUE
+  bert_sentence_tokenization = TRUE,
+  envname = "rectr_condaenv",
+  path = "./"
 )
 }
 \arguments{
