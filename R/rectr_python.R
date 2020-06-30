@@ -65,8 +65,15 @@ download_mbert <- function(path = "./", envname = "rectr_condaenv", noise = TRUE
     .initialize_conda(envname = envname, noise = noise)
     ##reticulate::source_python(system.file("python", "bert.py", package = 'rectr'))
     bert_model <- reticulate::import_from_path("bert", system.file("python", package = "rectr"))
+    if (!.have_bert(path)) {
+        stop("BERT model not found. Please download it with: download_mbert()")
+    }
     bert_instance <- bert_model$MBERT(path = normalizePath(path))
     list_of_embedding <- purrr::map(sentences, .bert_emb, bert_instance = bert_instance, max_length = max_length, noise = noise)
     dfm_bert <- do.call(rbind, list_of_embedding)
     return(dfm_bert)
+}
+
+.have_bert <- function(path) {
+    "config.json" %in% list.files(normalizePath(path)) & "pytorch_model.bin" %in% list.files(normalizePath(path))
 }
