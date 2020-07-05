@@ -3,8 +3,6 @@ title: Reproducing the analyses in the paper
 output: 
   github_document:
     toc: false
-  pdf_document:
-    toc: false
 ---
 
 
@@ -55,24 +53,13 @@ paris$outlet[excluded_id]
 paris$headline[excluded_id]
 ```
 
-
-Fixing coding
-
-```{r}
-require(rectr)
-paris_human_coding[102,3] <- 1939
-paris_human_coding[102,5] <- 1
-rio::export(paris_human_coding, "paris_human_coding.csv")
-usethis::use_data(paris_human_coding, overwrite = TRUE)
-```
-
 ```{r, eval = FALSE}
 get_ft("fr")
 get_ft("de")
 get_ft("en")
 ```
 
-```{r}
+```{r, eval = FALSE}
 emb <- read_ft(c("fr", "de", "en"))
 paris_corpus <- create_corpus(paris$content, paris$lang)
 docvars(paris_corpus, "headline") <- paris$headline
@@ -89,8 +76,6 @@ paris_dfm_bert <- transform_dfm_boe(paris_corpus, mode = "bert", noise = TRUE, p
 saveRDS(paris_dfm_bert, "paris_dfm_bert.RDS")
 ```
 
-
-
 Again, due to copyright reasons, we cannot provide the full text and the version translated by Google (using the DTM translation method by Reber 2019). The DTM (in STM) is available in this package. It was created using this code.
 
 ```{r, eval = FALSE}
@@ -103,7 +88,6 @@ textdata <- readRDS("final_data_endefr.RDS") %>% mutate(content = paste(lede, bo
 
 textdata %>% filter(lang != "en") -> FR_DE_content
 
-## Please insert your google token here. Uncomment if needed.
 gl_auth("")
 
 glx <- function(content, source) {
@@ -140,7 +124,7 @@ textdata %>% sample_n(20) %>% select(content, google_translate, lang)
 saveRDS(textdata, "paris_ft_translate.RDS")
 ```
 
-```{r}
+```{r, eval = FALSE}
 ## Exclusion of three French NYT articles.
 textdata <- readRDS("paris_ft_translate.RDS")[-excluded_id,]
 
@@ -214,7 +198,7 @@ dfm(textdata$translated_text, tolower = TRUE, stem = TRUE, remove = stopwords("e
 
 Saving into the data directory, and don't get us into legal trouble.
 
-```{r}
+```{r, eval = FALSE}
 paris_dfm <- readRDS("paris_dfm.RDS")
 paris_dfm_bert <- readRDS("paris_dfm_bert.RDS")
 
@@ -283,7 +267,7 @@ paris_gmm_bert
 
 ## Appendix II: af-rectr
 
-```{r, results = 'asis'}
+```{r}
 get_sample <- function(i, paris_corpus, theta, threshold = 0.8, replace = FALSE) {
     tibble(hl = docvars(paris_corpus, "headline"), lang = docvars(paris_corpus, "lang"), prob = theta[,i]) %>% group_by(lang) %>% filter(prob > threshold) %>% sample_n(size = 5, weight = prob, replace = replace) %>% select(hl, lang, prob) %>% ungroup %>% arrange(lang, prob) %>% mutate(topic = i)
 }
@@ -301,7 +285,7 @@ print(hl, n = 100)
 ## Appendix III: mb-rectr
 
 
-```{r, results = 'asis'}
+```{r}
 set.seed(42)
 hl <- get_headline(paris_gmm_bert)
 rio::export(select(hl, topic, lang, hl), "mb_rectr_hl.csv")
@@ -311,7 +295,7 @@ print(hl, n = 100)
 
 ## Appendix VI: tdtm-stm
 
-```{r, results = 'asis'}
+```{r}
 require(stm)
 
 set.seed(42)
@@ -324,7 +308,7 @@ print(hl, n = 100)
 
 ## Appendix V: ft-stm
 
-```{r, results = 'asis'}
+```{r}
 require(stm)
 require(tidyverse)
 ##require(googleLanguageR)
@@ -386,7 +370,12 @@ cor.test(paris_topic_sim$human, paris_topic_sim$ft_topicsim)
 ## Figure 7
 
 ```{r}
-paris_topic_sim %>% select(rectr_topicsim, tstm_topicsim, ft_topicsim, bert_topicsim, human) %>% gather(key = "model", value = "similarity", -human) %>% mutate(model = recode(model, rectr_topicsim = "af-rectr", bert_topicsim = "mb-rectr", tstm_topicsim = "tdtm-stm", ft_topicsim = "ft-stm")) %>%  ggplot(aes(x = human, y = similarity)) + geom_point(alpha = 0.5) + facet_grid(fct_relevel(model, "af-rectr", "mb-rectr") ~ .) + geom_smooth(method = 'lm') + ylab("Topical Similarity") + xlab("Human evaluation")
+paris_topic_sim %>% select(rectr_topicsim, tstm_topicsim, ft_topicsim, bert_topicsim, human) %>% gather(key = "model", value = "similarity", -human) %>% mutate(model = recode(model, rectr_topicsim = "af-rectr", bert_topicsim = "mb-rectr", tstm_topicsim = "tdtm-stm", ft_topicsim = "ft-stm")) %>%  ggplot(aes(x = human, y = similarity)) + geom_point(alpha = 0.5) + facet_grid(fct_relevel(model, "af-rectr", "mb-rectr") ~ .) + geom_smooth(method = 'lm') + ylab("Topical Similarity") + xlab("Human evaluation") -> fig
+
+height <- 6
+
+ggsave("rectr_cmm_r1_fig7.pdf", fig, height = height, width = height * 1.77)
+fig
 ```
 
 ## Figure 5
@@ -399,7 +388,9 @@ theta_to_tibble <- function(theta, method = "af-rectr", paris_corpus) {
 }
 
 
-map2_dfr(list(paris_gmm$theta, paris_gmm_bert$theta, translated_stm$theta, ft_stm$theta), c("af-rectr", "mb-rectr", "tdtm-stm", "ft-stm"), theta_to_tibble, paris_corpus = paris_corpus) %>% ggplot(aes(x = theta, y = topic, group = topic)) + geom_density_ridges(aes(fill = lang), alpha = .5, color = "white", from = 0, to = 1) + scale_fill_brewer(palette = "Dark2")  + facet_grid(lang ~ fct_relevel(method, "af-rectr", "mb-rectr")) + scale_y_continuous(breaks=seq_len(5), labels=c("t1", "t2", "t3", "t4", "t5")) + xlab(expression(theta[t]))
+map2_dfr(list(paris_gmm$theta, paris_gmm_bert$theta, translated_stm$theta, ft_stm$theta), c("af-rectr", "mb-rectr", "tdtm-stm", "ft-stm"), theta_to_tibble, paris_corpus = paris_corpus) %>% ggplot(aes(x = theta, y = topic, group = topic)) + geom_density_ridges(aes(fill = lang), alpha = .5, color = "white", from = 0, to = 1) + scale_fill_brewer(palette = "Dark2")  + facet_grid(lang ~ fct_relevel(method, "af-rectr", "mb-rectr")) + scale_y_continuous(breaks=seq_len(5), labels=c("t1", "t2", "t3", "t4", "t5")) + xlab(expression(theta[t])) -> fig
+ggsave("rectr_cmm_r1_fig5.pdf", fig, height = height, width = height * 1.77)
+fig
 ```
 
 # Figure 6
@@ -409,14 +400,18 @@ cal_hhi <- function(model, method = "af-rectr") {
     tibble(best_fit = apply(model$theta, 1, which.max), lang = docvars(paris_corpus, "lang")) %>% count(best_fit, lang) %>% group_by(best_fit) %>% mutate(tn = sum(n), prob = (n / tn)^2) %>% summarise(hhi = sum(prob)) %>% mutate(method = method)
 }
 
-map2_dfr(list(paris_gmm, paris_gmm_bert, translated_stm, ft_stm), c("af-rectr", "mb-rectr", "tdtm-stm", 'ft-stm'), cal_hhi) %>% ggplot(aes(x = best_fit, y = hhi)) + geom_bar(stat = 'identity') + facet_grid(. ~ fct_relevel(method, "af-rectr", "mb-rectr")) + xlab("topic") + ylab("Hirschman-Herfindahl Index")
+map2_dfr(list(paris_gmm, paris_gmm_bert, translated_stm, ft_stm), c("af-rectr", "mb-rectr", "tdtm-stm", 'ft-stm'), cal_hhi) %>% ggplot(aes(x = best_fit, y = hhi)) + geom_bar(stat = 'identity') + facet_grid(. ~ fct_relevel(method, "af-rectr", "mb-rectr")) + xlab("topic") + ylab("Hirschman-Herfindahl Index") -> fig
+ggsave("rectr_cmm_r1_fig6.pdf", fig, height = height, width = height * 1.77)
+fig
 ```
 
 ## Figure 8
 
 ```{r}
 require(lubridate)
-tibble(theta = c(paris_gmm$theta[,1], paris_gmm$theta[,2], paris_gmm$theta[,3], paris_gmm$theta[,4], paris_gmm$theta[,5], translated_stm$theta[,1], translated_stm$theta[,2], translated_stm$theta[,3], translated_stm$theta[,4], translated_stm$theta[,5]), lang = rep(docvars(paris_corpus, "lang"), 10), pubdate = rep(docvars(paris_corpus, "pubdate"), 10), topic = c(sort(rep(1:5, length(paris_corpus))), sort(rep(1:5, length(paris_corpus)))), method = c(rep("af-rectr", 3388*5), rep("tdtm-stm", 3388*5))) %>% mutate(pubdate = lubridate::dmy(pubdate)) %>% group_by(topic, lang, pubdate, method) %>% summarise(mean_theta = mean(theta)) %>% ggplot(aes(x = pubdate, y = mean_theta, color = lang)) + geom_line() + facet_grid(topic ~ method) + ylab(expression(theta[t])) + xlab("Date") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + scale_color_brewer(palette = "Dark2")
+tibble(theta = c(paris_gmm$theta[,1], paris_gmm$theta[,2], paris_gmm$theta[,3], paris_gmm$theta[,4], paris_gmm$theta[,5], translated_stm$theta[,1], translated_stm$theta[,2], translated_stm$theta[,3], translated_stm$theta[,4], translated_stm$theta[,5]), lang = rep(docvars(paris_corpus, "lang"), 10), pubdate = rep(docvars(paris_corpus, "pubdate"), 10), topic = c(sort(rep(1:5, length(paris_corpus))), sort(rep(1:5, length(paris_corpus)))), method = c(rep("af-rectr", 3388*5), rep("tdtm-stm", 3388*5))) %>% mutate(pubdate = lubridate::dmy(pubdate)) %>% group_by(topic, lang, pubdate, method) %>% summarise(mean_theta = mean(theta)) %>% ggplot(aes(x = pubdate, y = mean_theta, color = lang)) + geom_line() + facet_grid(topic ~ method) + ylab(expression(theta[t])) + xlab("Date") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + scale_color_brewer(palette = "Dark2") -> fig
+ggsave("rectr_cmm_r1_fig8.pdf", fig, height = height, width = height * 1.77)
+fig
 ```
 
 Appendix VII

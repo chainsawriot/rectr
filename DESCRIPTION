@@ -1,5 +1,5 @@
 Package: rectr
-Title: Reproducible Extraction of Cross-lingual Topics Using R.
+Title: Reproducible Extraction of Cross-lingual Topics Using R
 Version: 0.1.3
 Authors@R: 
     person(given = "Chung-hong",
@@ -25,3 +25,5 @@ Imports:
     reticulate,
     tokenizers
 RoxygenNote: 7.1.0
+Depends: 
+    R (>= 2.10)

@@ -34,4 +34,8 @@ udfm_t %>% pivot_longer(-lang, names_to = "dimension", values_to = "U") -> y
 
 y$method <- "M-BERT"
 
-bind_rows(x, y) %>% ggplot(aes(x = dimension, y = U, col = lang)) + geom_jitter(shape = 16, position = position_jitter(0.4), alpha = 0.3) + facet_grid(rows = vars(method)) + scale_color_brewer(palette = "Dark2")
+bind_rows(x, y) %>% ggplot(aes(x = dimension, y = U, col = lang)) + geom_jitter(shape = 16, position = position_jitter(0.4), alpha = 0.3) + facet_grid(rows = vars(method)) + scale_color_brewer(palette = "Dark2") -> fig
+
+height <- 6
+ggsave("rectr_cmm_r1_fig4.pdf", fig, height = height, width = height * 1.77)
+
