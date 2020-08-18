@@ -7,8 +7,7 @@ output: github_document
 
 Please cite this package as:
 
-*Chan, C.H., Zeng, J., Wessler, H., Jungblut, M., Welbers, K., Bajjalieh, J., van Atteveldt, W., & Althaus, S. (2020) Reproducible Extraction of Cross-lingual Topics. Paper accepted for oral presentation at the 70th International Communication Association Annual Conference (Top paper awards, ICA Computational Methods Interest Group)*
-
+*Chan, C.H., Zeng, J., Wessler, H., Jungblut, M., Welbers, K., Bajjalieh, J., van Atteveldt, W., & Althaus, S. (2020) Reproducible Extraction of Cross-lingual Topics. Communication Methods & Measures (Accepted)*
 
 The rectr package contains an example dataset "wiki" with English and German articles from Wikipedia about programming languages and locations in Germany. This package uses the corpus data structure from the `quanteda` package.
 
@@ -25,14 +24,14 @@ Currently, this package supports [aligned fastText](https://github.com/facebookr
 
 ## Step 1: Setup your conda environment
 
-```{r}
+```{r, eval = FALSE}
 ## setup a conda environment, default name: rectr_condaenv
 mbert_env_setup()
 ```
 
 ## Step 1: Download MBERT model
 
-```{r}
+```{r, eval = FALSE}
 ## default to your current directory
 download_mbert(noise = TRUE)
 ```

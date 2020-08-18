@@ -344,6 +344,12 @@ require(irr)
 irr::kripp.alpha(matrix(c(paris_human_coding$coder1, paris_human_coding$coder2), nrow = 2, byrow = TRUE), method = "ordinal")
 ```
 
+Unadjusted Kappa (for comparison with Hatzivassiloglou et al. 1999)
+
+```{r}
+irr::kappa2(t(matrix(c(paris_human_coding$coder1, paris_human_coding$coder2), nrow = 2, byrow = TRUE)), weight = "squared")
+```
+
 Topical similarity
 
 ```{r}
