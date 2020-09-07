@@ -1,0 +1,19 @@
+citHeader("To cite rectr in publications use:")
+
+citEntry(
+  entry    = "Article",
+  title    = "Reproducible Extraction of Cross-lingual Topics (rectr)",
+  author   = personList(person(given = "Chung-hong", family = "Chan"),
+                        person(given = "Jing", family = "Zeng"),
+                        person(given = "Hartmut", family = "Wessler"),
+                        person(given = "Marc", "Jungblut"),
+                        person(given = "Kasper", family = "Welbers"),
+                        person(given = "Joseph", family = "Bajjalieh", middle = "W"),
+                        person(given = "Wouter", family = "van Atteveldt"),
+                        person(given = "Scott", family = "Althaus", middle = "L")),
+  journal  = "Communication Methods and Measures",
+  year     = "2020",
+  url      = "https://github.com/chainsawriot/rectr",
+  doi = "https://doi.org/10.1080/19312458.2020.1812555",
+  textVersion = paste("Chung-hong Chan, Jing Zeng, Hartmut Wessler, Marc Jungblut, Kasper Welbers, Joseph W Bajjalieh, Wouter van Atteveldt & Scott L. Althaus (2020) Reproducible Extraction of Cross-lingual Topics (rectr), Communication Methods and Measures, DOI: 10.1080/19312458.2020.1812555")
+)
