@@ -8,14 +8,14 @@
 
 
 .have_conda <- function() {
-    is.null(tryCatch(reticulate::conda_binary(conda), error = function(e) NULL))
+    !is.null(tryCatch(reticulate::conda_list(), error = function(e) NULL))
 }
 
 #' @export
 mbert_env_setup <- function(envname = "rectr_condaenv") {
     if (!.have_conda()) {
         cat("No conda was found in this system.")
-        ans <- utils::menu(c("No", "Yes"), title = paste0("Do you want to install miniconda in ", miniconda_path()))
+        ans <- utils::menu(c("No", "Yes"), title = paste0("Do you want to install miniconda in ", reticulate::miniconda_path()))
         if (ans == 1) {
             stop("Setup aborted.\n")
         } else {
@@ -27,7 +27,8 @@ mbert_env_setup <- function(envname = "rectr_condaenv") {
     }
     ## The actual installation
     ## https://github.com/rstudio/reticulate/issues/779
-    system2("conda", args = c("env", "create",  paste0("-f=", system.file("python", "rectr.yml", package = 'rectr')), "-n", envname))
+    conda_path <- paste0(reticulate::miniconda_path(), "/bin/conda")
+    system2(conda_path, args = c("env", "create",  paste0("-f=", system.file("python", "rectr.yml", package = 'rectr')), "-n", envname, "python=3.7"))
 }
 
 
@@ -74,6 +75,6 @@ download_mbert <- function(path = "./", envname = "rectr_condaenv", noise = TRUE
     return(dfm_bert)
 }
 
-.have_bert <- function(path) {
+.have_bert <- function(path = "./") {
     "config.json" %in% list.files(normalizePath(path)) & "pytorch_model.bin" %in% list.files(normalizePath(path))
 }
