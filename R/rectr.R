@@ -103,11 +103,25 @@ create_corpus <- function(text_content, lang) {
 #' @return a rectr_dfm object
 #' @importFrom magrittr %>%
 #' @export
-transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert", noise = FALSE, remove_stopwords = TRUE, bert_sentence_tokenization = TRUE, envname = "rectr_condaenv", path = "./") {
+transform_dfm_boe <- function(corpus, emb = NULL, .progress = TRUE, mode = "bert", noise = FALSE, remove_stopwords = TRUE, bert_sentence_tokenization = TRUE, envname = "rectr_condaenv", path = "./", future = TRUE) {
     if (mode == "fasttext" | !is.null(emb)) {
         mode <- "fasttext"
-        future:::plan(future::multiprocess)
-        furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress, remove_stopwords = remove_stopwords) %>% as.matrix -> real_dfm
+        if (future) {
+            future:::plan(future::multiprocess)
+            furrr::future_map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, .progress = .progress, remove_stopwords = remove_stopwords) %>% as.matrix -> real_dfm
+        } else {
+            if (!.progress) {
+                purrr::map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding, emb = emb, remove_stopwords = remove_stopwords) %>% as.matrix -> real_dfm
+            } else {
+                pb <- progress::progress_bar$new(total = length(as.vector(corpus)))
+                .gen_doc_embedding_pb <- function(...) {
+                    pb$tick()
+                    .gen_doc_embedding(...)
+                }
+                purrr::map2_dfr(as.vector(corpus), quanteda::docvars(corpus, "lang"), .gen_doc_embedding_pb, emb = emb, remove_stopwords = remove_stopwords) %>% as.matrix -> real_dfm
+
+            }
+        }
     } else if (mode == "bert"){
         mode <- "bert"
         real_dfm <- .bert(content = as.vector(corpus), lang =  quanteda::docvars(corpus, "lang"), noise = noise, remove_stopwords = remove_stopwords, bert_sentence_tokenization = bert_sentence_tokenization, envname = envname, path = path)
