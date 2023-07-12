@@ -110,7 +110,9 @@ wiki_corpus <- create_corpus(wiki$content, wiki$lang)
 Create a multilingual dfm
 
 ```{r}
-wiki_dfm <- transform_dfm_boe(wiki_corpus, emb)
+require(future)
+plan(multisession)
+wiki_dfm <- transform_dfm_boe(wiki_corpus, emb, .progress = TRUE)
 wiki_dfm
 ```
 
