@@ -48,10 +48,14 @@ wiki_corpus <- create_corpus(wiki$content, wiki$lang)
 
 Create a multilingual dfm
 
-```{r}
+```{r, eval = FALSE}
 ## default
 wiki_dfm <- transform_dfm_boe(wiki_corpus, noise = TRUE)
 wiki_dfm
+```
+
+```{r, includes = FALSE}
+wiki_dfm <- readRDS("man/figures/wiki_dfm.RDS")
 ```
 
 ## Step 3: Filter dfm

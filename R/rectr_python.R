@@ -28,7 +28,7 @@ mbert_env_setup <- function(envname = "rectr_condaenv") {
     ## The actual installation
     ## https://github.com/rstudio/reticulate/issues/779
     conda_path <- paste0(reticulate::miniconda_path(), "/bin/conda")
-    system2(conda_path, args = c("env", "create",  paste0("-f=", system.file("python", "rectr.yml", package = 'rectr')), "-n", envname, "python=3.7"))
+    system2(conda_path, args = c("env", "create",  paste0("-f=", system.file("python", "rectr.yml", package = 'rectr')), "-n", envname))
 }
 
 
